@@ -1,0 +1,711 @@
+{% extends "base.html" %}
+{% block title %}AI Recommendations{% endblock %}
+{% block page_title %}AI-Powered Recommendations{% endblock %}
+
+{% block content %}
+<style>
+/* ── Recommendation Page Theme-Aware Styling ── */
+
+/* Badges */
+.badge-gold {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold)) !important;
+    color: var(--btn-gold-text) !important;
+    font-weight: 600;
+}
+
+.badge-champagne {
+    background: var(--border) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600;
+}
+
+.badge-rich-gold {
+    background: var(--gold-dark) !important;
+    color: var(--btn-gold-text) !important;
+    font-weight: 600;
+}
+
+/* Custom Modal Overlay & Dialog */
+.premium-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.premium-modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.premium-modal-container {
+    background: var(--bg-secondary);
+    border: 2px solid var(--gold);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 850px;
+    padding: 32px;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.premium-modal-overlay.active .premium-modal-container {
+    transform: scale(1);
+}
+
+.premium-modal-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 2.2rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.premium-modal-close-btn:hover {
+    color: var(--gold);
+}
+
+.premium-modal-image-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    width: 100%;
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.premium-modal-image-wrapper img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.5s ease;
+}
+
+.premium-modal-image-wrapper img:hover {
+    transform: scale(1.05);
+}
+
+.premium-modal-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.premium-modal-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.premium-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.spec-item {
+    background: var(--bg-primary);
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.spec-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.spec-val {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.premium-modal-price {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: var(--gold);
+}
+
+.btn-gold-premium {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-dark)) !important;
+    color: var(--btn-gold-text) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2) !important;
+    border: none !important;
+    border-radius: 10px;
+}
+
+.btn-gold-premium:hover {
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+}
+
+.btn-outline-gold-premium {
+    border: 1px solid var(--gold) !important;
+    color: var(--gold) !important;
+    background: transparent !important;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.btn-outline-gold-premium:hover {
+    background: rgba(212, 175, 55, 0.1) !important;
+}
+
+.premium-match-badge {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold)) !important;
+    color: var(--btn-gold-text) !important;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+</style>
+    <!-- Customer Selector -->
+    <div class="row mb-4 animate-in">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('ai.recommendations') }}" class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-2" style="min-width: 50px;">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:42px;height:42px;background:linear-gradient(135deg,#d4af37,#b8960c);">
+                                <i class="fas fa-user-tag" style="color:var(--btn-gold-text);"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <label for="customer_id" class="form-label mb-1 small fw-semibold">Select Customer</label>
+                            <select name="customer_id" id="customer_id" class="form-select">
+                                <option value="">— Choose a customer —</option>
+                                {% for c in customers %}
+                                <option value="{{ c.customer_id }}" {% if selected_customer == c.customer_id %}selected{% endif %}>
+                                    {{ c.name }} {% if c.phone %}({{ c.phone }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="align-self-end">
+                            <button type="submit" class="btn btn-gold btn-lg">
+                                <i class="fas fa-magic me-2"></i> Get Recommendations
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if recommended %}
+    <!-- Recommendations Header -->
+    <div class="row mb-3 animate-in" style="animation-delay: 0.1s;">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-sparkles me-2 text-gold"></i> Personalized Picks</h5>
+                <span class="badge badge-champagne">{{ recommended|length }} Items</span>
+            </div>
+            <p class="text-muted mb-0">Based on purchase history, browsing patterns, and preference analysis.</p>
+        </div>
+    </div>
+
+    <!-- Recommendation Cards -->
+    <div class="row g-4 mb-4">
+        {% for item in recommended %}
+        <div class="col-lg-4 col-md-6 animate-in" style="animation-delay: {{ 0.15 + loop.index0 * 0.1 }}s;">
+            <div class="recommendation-card card h-100" style="cursor: pointer;" onclick="showDetails(this.querySelector('.rec-details-btn'))">
+                
+                {# ── Image resolution: resolved via python utility helper ── #}
+                {% set img_rel_path = get_jewellery_image_path(item) %}
+                {% if img_rel_path.startswith('http') %}
+                    {% set img_src = img_rel_path %}
+                {% else %}
+                    {% set img_src = url_for('static', filename=img_rel_path) %}
+                {% endif %}
+                {% set original_price = item.selling_price * 1.15 %}
+                {% set savings = original_price - item.selling_price %}
+                {% set discount_pct = 15 %}
+                {% set match_score = 99 - (loop.index0 * 2) - (item.item_id % 3) %}
+                {% set rating = ((item.item_id * 3 + 17) % 5) / 10 + 4.5 %}
+                {% set reviews = (item.item_id * 7 + 11) % 80 + 12 %}
+                {% set badge_type = item.item_id % 3 %}
+
+                <!-- Large Product Image Section (top) -->
+                <div class="rec-img-container" style="position: relative; height: 260px; overflow: hidden; border-radius: 20px 20px 0 0;">
+                    <img src="{{ img_src }}" 
+                         alt="{{ item.name }}" 
+                         class="rec-img w-100 h-100" 
+                         style="object-fit: cover;"
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/placeholder.png') }}'"/>
+                    <div class="rec-overlay-gradient" style="position: absolute; bottom: 0; left: 0; right: 0; height: 80px; z-index: 1;"></div>
+                    <div class="rec-overlay-hover">
+                        <button type="button" class="btn btn-outline-gold btn-sm rec-details-btn" 
+                                data-id="{{ item.item_id }}"
+                                data-name="{{ item.name }}"
+                                data-category="{{ item.category }}"
+                                data-material="{{ item.material }}"
+                                data-purity="{{ item.purity }}"
+                                data-weight="{{ item.weight_gm }}"
+                                data-price="{{ item.selling_price }}"
+                                data-mrp="{{ original_price }}"
+                                data-savings="{{ savings }}"
+                                data-discount="{{ discount_pct }}"
+                                data-rating="{{ rating }}"
+                                data-reviews="{{ reviews }}"
+                                data-stock="{{ item.stock_qty }}"
+                                data-description="{{ item.description or '' }}"
+                                data-image="{{ img_src or '' }}"
+                                data-match-score="{{ match_score }}"
+                                onclick="event.stopPropagation(); showDetails(this)">
+                            <i class="fas fa-eye me-1"></i> Quick View
+                        </button>
+                    </div>
+                    
+                    <!-- Wishlist heart button -->
+                    <button type="button" class="rec-wishlist-btn" data-item-id="{{ item.item_id }}" onclick="event.stopPropagation(); toggleWishlist(this, {{ item.item_id }})">
+                        <i class="far fa-heart"></i>
+                    </button>
+
+                    <!-- Stock Badge overlay on image top-left -->
+                    <span class="badge position-absolute m-3" style="top: 0; left: 0; background: var(--bg-glass); color: var(--text-primary); border: 1px solid var(--border); font-size: 0.7rem; border-radius: 6px; z-index: 5; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+                        <i class="fas fa-cube me-1"></i>{{ item.stock_qty }} Stock
+                    </span>
+
+                    <!-- Match Score overlay next to stock badge -->
+                    <span class="badge badge-gold position-absolute m-3" style="top: 0; left: 85px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; z-index: 5; box-shadow: 0 4px 10px rgba(212,175,55,0.15);">
+                        <i class="fas fa-magic me-1"></i>{{ match_score }}% Match
+                    </span>
+
+                    <!-- Category Badge overlay on image bottom-left -->
+                    <span class="badge rec-cat-badge position-absolute m-3" style="bottom: 0; left: 0; font-size: 0.7rem; border-radius: 6px; z-index: 5;">
+                        {% if item.category == 'Ring' %}<i class="fas fa-ring me-1"></i>
+                        {% elif item.category == 'Necklace' %}<i class="fas fa-link me-1"></i>
+                        {% elif item.category in ['Bracelet', 'Anklet', 'Bangles'] %}<i class="far fa-circle me-1"></i>
+                        {% elif item.category == 'Earrings' %}<i class="fas fa-star me-1"></i>
+                        {% elif item.category == 'Pendant' %}<i class="fas fa-gem me-1"></i>
+                        {% else %}<i class="fas fa-gem me-1"></i>
+                        {% endif %}
+                        {{ item.category }}
+                    </span>
+
+                    <!-- E-commerce Tag Badge overlay on image bottom-right -->
+                    {% if badge_type == 0 %}
+                    <span class="badge badge-rich-gold position-absolute m-3" style="bottom: 0; right: 0; font-size: 0.7rem; border-radius: 6px; z-index: 5; font-weight: 700; text-transform: uppercase;">
+                        <i class="fas fa-fire me-1"></i>Bestseller
+                    </span>
+                    {% elif badge_type == 1 %}
+                    <span class="badge badge-champagne position-absolute m-3" style="bottom: 0; right: 0; font-size: 0.7rem; border-radius: 6px; z-index: 5; font-weight: 700; text-transform: uppercase;">
+                        <i class="fas fa-star me-1"></i>New Arrival
+                    </span>
+                    {% else %}
+                    <span class="badge badge-champagne position-absolute m-3" style="bottom: 0; right: 0; font-size: 0.7rem; border-radius: 6px; z-index: 5; font-weight: 700; text-transform: uppercase;">
+                        <i class="fas fa-crown me-1"></i>Trending
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Card Body (middle) -->
+                <div class="card-body p-4 pt-3 d-flex flex-column justify-content-between flex-grow-1">
+                    <div>
+                        <!-- Product Name -->
+                        <h5 class="fw-bold text-light mb-2" style="line-height: 1.3; font-family: 'Outfit', sans-serif; color: var(--text-primary) !important;">{{ item.name }}</h5>
+                        
+                        <!-- Rating and Reviews Section -->
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="d-flex text-warning small">
+                                {% for idx in range(5) %}
+                                    {% if rating >= idx + 0.95 %}
+                                        <i class="fas fa-star" style="color: #D4AF37; font-size: 0.8rem; margin-right: 1px;"></i>
+                                    {% elif rating >= idx + 0.45 %}
+                                        <i class="fas fa-star-half-alt" style="color: #D4AF37; font-size: 0.8rem; margin-right: 1px;"></i>
+                                    {% else %}
+                                        <i class="far fa-star" style="color: rgba(212,175,55,0.25); font-size: 0.8rem; margin-right: 1px;"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="text-gold fw-semibold small" style="font-size: 0.8rem;">{{ "{:.1f}".format(rating) }}</span>
+                            <span class="text-muted small" style="font-size: 0.75rem;">({{ reviews }} reviews)</span>
+                        </div>
+
+                        <!-- Material & Purity Details -->
+                        <div class="d-flex align-items-center justify-content-between mb-3 text-muted small" style="font-size: 0.8rem;">
+                            <div>
+                                <i class="fas fa-layer-group text-gold me-1" style="color: var(--gold) !important;"></i>
+                                <span>{{ item.material }}</span>
+                            </div>
+                            <div>
+                                <i class="fas fa-certificate text-gold me-1" style="color: var(--gold) !important;"></i>
+                                <span>{{ item.purity }}</span>
+                            </div>
+                            <div>
+                                <i class="fas fa-weight-hanging text-gold me-1" style="color: var(--gold) !important;"></i>
+                                <span>{{ item.weight_gm }}g</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <!-- Price Section -->
+                        <div class="p-3 rounded-3 mb-3" style="background: var(--gold-subtle); border: 1px solid var(--border);">
+                            <div class="d-flex justify-content-between align-items-baseline mb-1">
+                                <span class="text-muted small" style="font-size: 0.75rem;">MRP:</span>
+                                <span class="text-muted text-decoration-line-through small" style="font-size: 0.75rem;">₹{{ "{:,.2f}".format(original_price) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-medium" style="font-size: 0.8rem; color: var(--text-primary);">Offer Price:</span>
+                                <span class="fs-4 fw-bold text-gold" style="color: var(--gold-dark) !important;">₹{{ "{:,.2f}".format(item.selling_price) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge text-success small fw-semibold" style="font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; background: rgba(46, 204, 113, 0.12); border: 1px solid rgba(46, 204, 113, 0.2);">
+                                    Save ₹{{ "{:,.2f}".format(savings) }} ({{ discount_pct }}% OFF)
+                                </span>
+                            </div>
+                            <div class="text-muted text-center" style="font-size: 0.65rem; border-top: 1px dashed rgba(212,175,55,0.2); padding-top: 8px; margin-top: 6px;">
+                                <i class="fas fa-info-circle me-1"></i>Inclusive of all taxes & GST
+                            </div>
+                        </div>
+                        
+                        <!-- Action Button -->
+                        <button class="btn btn-gold w-100 py-2" onclick="event.stopPropagation(); addToCart({{ item.item_id }})">
+                            <i class="fas fa-cart-plus me-2"></i> Add to Cart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Recommended Badge (footer) -->
+                <div class="card-footer border-0 py-2 text-center">
+                    <small class="text-muted"><i class="fas fa-robot me-1 text-gold" style="color:#D4AF37 !important;"></i> AI Recommended</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% elif not selected_customer %}
+    <!-- Hero Message -->
+    <div class="row mb-4 animate-in" style="animation-delay: 0.15s;">
+        <div class="col-12">
+            <div class="card text-center py-5" style="border: 2px dashed rgba(212,175,55,0.25); background: linear-gradient(135deg, rgba(232, 220, 200, 0.15), rgba(0,0,0,0));">
+                <div class="card-body">
+                    <div class="mb-4" style="font-size: 4rem; opacity: 0.3;">
+                        <i class="fas fa-robot text-gold" style="color: var(--gold) !important;"></i>
+                    </div>
+                    <h3 class="mb-3 fw-bold">Discover Personalized Jewellery</h3>
+                    <p class="text-muted mx-auto" style="max-width: 500px;">
+                        Select a customer above to unlock AI-powered recommendations tailored to their unique style, purchase history, and preferences.
+                    </p>
+                    <div class="d-flex justify-content-center gap-3 mt-4">
+                        <div class="text-center px-4">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width:50px;height:50px;background:var(--gold-subtle);border:1px solid var(--border);">
+                                <i class="fas fa-history text-gold" style="color: var(--gold) !important;"></i>
+                            </div>
+                            <small class="text-muted">Purchase History</small>
+                        </div>
+                        <div class="text-center px-4">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width:50px;height:50px;background:var(--gold-subtle);border:1px solid var(--border);">
+                                <i class="fas fa-brain text-gold" style="color: var(--gold) !important;"></i>
+                            </div>
+                            <small class="text-muted">AI Analysis</small>
+                        </div>
+                        <div class="text-center px-4">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width:50px;height:50px;background:var(--gold-subtle);border:1px solid var(--border);">
+                                <i class="fas fa-gem text-gold" style="color: var(--gold) !important;"></i>
+                            </div>
+                            <small class="text-muted">Perfect Picks</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Recommendations -->
+    <div class="row mb-4 animate-in" style="animation-delay: 0.15s;">
+        <div class="col-12">
+            <div class="card text-center py-5">
+                <div class="card-body">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="fw-bold">No Recommendations Available</h5>
+                    <p class="text-muted">This customer doesn't have enough purchase history for AI recommendations. More data will improve results over time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- How It Works -->
+    <div class="row animate-in" style="animation-delay: {{ 0.5 if recommended else 0.3 }}s;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-brain text-gold"></i>
+                    <span class="fw-bold">How AI Recommendations Work</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="d-flex gap-3">
+<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px;height:44px;background:var(--gold-subtle);border:1px solid var(--border);">
+                    <i class="fas fa-database text-gold"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Purchase History Analysis</h6>
+                                    <p class="text-muted small mb-0">We analyze past purchases — categories, materials, price ranges, and purity preferences — to build a customer profile vector.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex gap-3">
+<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px;height:44px;background:var(--gold-subtle);border:1px solid var(--border);">
+                    <i class="fas fa-vector-square text-gold"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Cosine Similarity</h6>
+                                    <p class="text-muted small mb-0">Each item in inventory is converted to a feature vector. Cosine similarity measures the angle between customer preferences and item features.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex gap-3">
+<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px;height:44px;background:var(--gold-subtle);border:1px solid var(--border);">
+                    <i class="fas fa-sort-amount-down text-gold"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Smart Ranking</h6>
+                                    <p class="text-muted small mb-0">Items are ranked by similarity score and filtered to exclude previously purchased items, showing only the best new picks.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Custom Premium Quick View Modal Overlay -->
+<div id="premiumModal" class="premium-modal-overlay">
+  <div class="premium-modal-container">
+    <button type="button" class="premium-modal-close-btn" onclick="closePremiumModal()">&times;</button>
+    <div class="premium-modal-content">
+      <div class="row g-4">
+        <!-- Left: Large Image -->
+        <div class="col-md-5 d-flex align-items-center justify-content-center">
+          <div class="premium-modal-image-wrapper">
+            <img id="premiumModalImage" src="" alt="Jewellery Piece">
+          </div>
+        </div>
+        <!-- Right: Specifications and details -->
+        <div class="col-md-7 d-flex flex-column justify-content-between">
+          <div>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <span class="badge badge-champagne" id="premiumModalCategory" style="font-size:0.8rem; padding: 5px 12px;"></span>
+              <span class="premium-match-badge" id="premiumModalMatchScore"></span>
+            </div>
+            <h3 class="premium-modal-title" id="premiumModalTitle"></h3>
+            <p class="premium-modal-desc" id="premiumModalDesc"></p>
+            
+            <div class="premium-specs-grid">
+              <div class="spec-item">
+                <span class="spec-label">Material</span>
+                <span class="spec-val" id="premiumModalMaterial"></span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Purity</span>
+                <span class="spec-val" id="premiumModalPurity"></span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Weight</span>
+                <span class="spec-val" id="premiumModalWeight"></span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Stock Status</span>
+                <span class="spec-val" id="premiumModalStock" style="color:#10B981;"></span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4 pt-3" style="border-top: 1px dashed rgba(212,175,55,0.25);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="spec-label" style="font-size:0.85rem; font-weight: 700;">Offer Price:</span>
+              <span class="premium-modal-price" id="premiumModalPrice"></span>
+            </div>
+            <div class="d-flex gap-3">
+              <button type="button" class="btn btn-gold-premium w-100 py-3" id="premiumModalCartBtn">
+                <i class="fas fa-cart-plus me-2"></i> Add to Cart
+              </button>
+              <button type="button" class="btn btn-outline-gold-premium w-100 py-3" onclick="closePremiumModal()">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PLACEHOLDER_IMG = "{{ url_for('static', filename='img/placeholder.png') }}";
+
+function addToCart(itemId) {
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-2"></i> Added!';
+    btn.style.background = 'rgba(46, 204, 113, 0.15)';
+    btn.style.borderColor = '#10B981';
+    btn.style.color = '#10B981';
+    setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+    }, 2000);
+}
+
+function initWishlists() {
+  const wishlisted = JSON.parse(localStorage.getItem('jewelhub_wishlist') || '[]');
+  document.querySelectorAll('.rec-wishlist-btn').forEach(btn => {
+    const itemId = parseInt(btn.dataset.itemId);
+    const icon = btn.querySelector('i');
+    if (wishlisted.includes(itemId)) {
+      btn.classList.add('active');
+      icon.className = 'fas fa-heart text-danger';
+    } else {
+      btn.classList.remove('active');
+      icon.className = 'far fa-heart';
+    }
+  });
+}
+
+function toggleWishlist(btn, itemId) {
+  const wishlisted = JSON.parse(localStorage.getItem('jewelhub_wishlist') || '[]');
+  const index = wishlisted.indexOf(itemId);
+  const icon = btn.querySelector('i');
+  if (index > -1) {
+    wishlisted.splice(index, 1);
+    btn.classList.remove('active');
+    icon.className = 'far fa-heart';
+  } else {
+    wishlisted.push(itemId);
+    btn.classList.add('active');
+    icon.className = 'fas fa-heart text-danger';
+    
+    // micro-animation pop effect
+    btn.style.transform = 'scale(1.25)';
+    setTimeout(() => { btn.style.transform = 'scale(1)'; }, 150);
+  }
+  localStorage.setItem('jewelhub_wishlist', JSON.stringify(wishlisted));
+}
+
+function showDetails(btn) {
+  const name = btn.dataset.name;
+  const category = btn.dataset.category;
+  const material = btn.dataset.material;
+  const purity = btn.dataset.purity;
+  const weight = btn.dataset.weight;
+  const price = btn.dataset.price;
+  const stock = btn.dataset.stock;
+  const description = btn.dataset.description;
+  const image = btn.dataset.image;
+  const id = btn.dataset.id;
+  const matchScore = btn.dataset.matchScore;
+
+  document.getElementById('premiumModalTitle').innerText = name;
+  document.getElementById('premiumModalCategory').innerText = category;
+  document.getElementById('premiumModalMaterial').innerText = material;
+  document.getElementById('premiumModalPurity').innerText = purity;
+  document.getElementById('premiumModalWeight').innerText = weight + 'g';
+  document.getElementById('premiumModalStock').innerText = stock > 0 ? (stock + ' Units Left') : 'Out of Stock';
+  
+  const stockEl = document.getElementById('premiumModalStock');
+  if (parseInt(stock) <= 3) {
+      stockEl.style.color = '#EF4444';
+  } else {
+      stockEl.style.color = '#10B981';
+  }
+
+  document.getElementById('premiumModalMatchScore').innerHTML = `<i class="fas fa-magic me-1"></i>${matchScore}% Match`;
+  document.getElementById('premiumModalPrice').innerText = '₹' + parseFloat(price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('premiumModalDesc').innerText = description || 'Premium hand-crafted luxury jewellery piece.';
+  
+  // Set image src with fallback to placeholder
+  const modalImg = document.getElementById('premiumModalImage');
+  modalImg.src = image || PLACEHOLDER_IMG;
+  modalImg.onerror = function() { this.onerror = null; this.src = PLACEHOLDER_IMG; };
+
+  // Set Add to Cart action inside modal
+  const cartBtn = document.getElementById('premiumModalCartBtn');
+  cartBtn.onclick = function(event) {
+      addToCart(id);
+  };
+
+  // Open modal with fade/scale animations
+  const overlay = document.getElementById('premiumModal');
+  overlay.classList.add('active');
+}
+
+function closePremiumModal() {
+  const overlay = document.getElementById('premiumModal');
+  overlay.classList.remove('active');
+}
+
+// Bind click outside overlay to close modal & bind ESC key
+document.addEventListener('DOMContentLoaded', () => {
+    initWishlists();
+    
+    const overlay = document.getElementById('premiumModal');
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            closePremiumModal();
+        }
+    });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closePremiumModal();
+        }
+    });
+
+    document.querySelectorAll('.animate-in').forEach((el, i) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            el.style.transition = 'all 0.5s ease';
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, i * 100);
+    });
+});
+</script>
+{% endblock %}

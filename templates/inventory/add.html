@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Add Item{% endblock %}
+{% block page_title %}➕ Add Jewellery Item{% endblock %}
+
+{% block content %}
+<div class="p-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card-dark">
+        <div class="card-dark-header">
+          <span><i class="fas fa-gem me-2 text-gold"></i>New Jewellery Item</span>
+          <a href="{{ url_for('inventory.list_items') }}" class="btn-link-gold">← Back to Inventory</a>
+        </div>
+        <div class="card-dark-body">
+          <form method="POST" action="{{ url_for('inventory.add_item') }}" enctype="multipart/form-data" id="addItemForm">
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label">Item Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control form-control-dark" placeholder="e.g. 22K Gold Mangalsutra" required/>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Category <span class="text-danger">*</span></label>
+                <select name="category" class="form-select form-select-dark" required>
+                  <option value="">Select Category</option>
+                  {% for cat in categories %}
+                  <option value="{{ cat }}">{{ cat }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Material</label>
+                <select name="material" class="form-select form-select-dark">
+                  <option value="">Select Material</option>
+                  {% for mat in materials %}
+                  <option value="{{ mat }}">{{ mat }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Purity (e.g. 22K, 925)</label>
+                <input type="text" name="purity" class="form-control form-control-dark" placeholder="22K"/>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Weight (grams)</label>
+                <input type="number" name="weight_gm" class="form-control form-control-dark" step="0.001" min="0" placeholder="0.000"/>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Selling Price (₹) <span class="text-danger">*</span></label>
+                <div class="input-group input-group-dark">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" name="price" class="form-control" step="0.01" min="0" placeholder="0.00" required/>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Cost Price (₹)</label>
+                <div class="input-group input-group-dark">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" name="cost_price" class="form-control" step="0.01" min="0" placeholder="0.00"/>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Stock Quantity</label>
+                <input type="number" name="stock_qty" class="form-control form-control-dark" min="0" value="1"/>
+              </div>
+              <div class="col-md-8">
+                <label class="form-label">Supplier</label>
+                <input type="text" name="supplier" class="form-control form-control-dark" placeholder="Supplier name"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Item Image</label>
+                <input type="file" name="item_image" id="item_image" class="form-control form-control-dark" accept="image/*" onchange="previewImage(this)"/>
+                <div id="imagePreviewContainer" class="mt-3 d-none">
+                  <div class="position-relative d-inline-block" style="border-radius: 12px; border: 2px solid #FFD700; padding: 4px; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); background: #111124;">
+                    <img id="imagePreview" src="#" alt="Image Preview" style="max-height: 120px; object-fit: contain; border-radius: 8px;">
+                    <button type="button" class="btn btn-sm btn-icon btn-icon-danger position-absolute top-0 end-0 m-1" onclick="clearPreview()" style="border-radius: 50%; width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; line-height: 1;"><i class="fas fa-times" style="font-size: 10px;"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control form-control-dark" rows="3" placeholder="Item description, design details…"></textarea>
+              </div>
+            </div>
+            <hr class="hr-gold mt-4"/>
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('inventory.list_items') }}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-gold"><i class="fas fa-plus me-2"></i>Add Item</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+function previewImage(input) {
+  const container = document.getElementById('imagePreviewContainer');
+  const preview = document.getElementById('imagePreview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.src = e.target.result;
+      container.classList.remove('d-none');
+    }
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+function clearPreview() {
+  const input = document.getElementById('item_image');
+  const container = document.getElementById('imagePreviewContainer');
+  const preview = document.getElementById('imagePreview');
+  input.value = '';
+  preview.src = '#';
+  container.classList.add('d-none');
+}
+</script>
+{% endblock %}
+{% endblock %}

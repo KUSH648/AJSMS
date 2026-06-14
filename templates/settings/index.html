@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}SMTP Settings{% endblock %}
+{% block page_title %}SMTP Email Settings{% endblock %}
+
+{% block content %}
+<div class="p-4 animate-in">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-glass">
+        <div class="card-header text-gold d-flex align-items-center justify-content-between">
+          <span><i class="fas fa-envelope me-2"></i>Email Configuration</span>
+          <span class="badge bg-info text-dark"><i class="fas fa-shield-alt me-1"></i>Admin Only</span>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info border-info text-light bg-transparent mb-4">
+            <i class="fas fa-info-circle me-2"></i>
+            Configure SMTP settings to enable sending invoice emails.
+            For Gmail, use an
+            <a href="https://support.google.com/accounts/answer/185833" target="_blank" class="text-warning">App Password</a>.
+          </div>
+          <form method="POST">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">SMTP Server</label>
+                <input type="text" name="mail_server" class="form-control form-control-dark"
+                       value="{{ settings.get('mail_server', 'smtp.gmail.com') }}"
+                       placeholder="smtp.gmail.com"/>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Port</label>
+                <input type="number" name="mail_port" class="form-control form-control-dark"
+                       value="{{ settings.get('mail_port', '587') }}" placeholder="587"/>
+              </div>
+              <div class="col-md-3 d-flex align-items-end pb-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="use_tls" checked disabled/>
+                  <label class="form-check-label text-muted small" for="use_tls">Use TLS</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email Username</label>
+                <input type="email" name="mail_username" class="form-control form-control-dark"
+                       value="{{ settings.get('mail_username', '') }}"
+                       placeholder="your@email.com"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email Password (App Password)</label>
+                <input type="password" name="mail_password" class="form-control form-control-dark"
+                       placeholder="Leave blank to keep current"/>
+              </div>
+            </div>
+            <hr class="hr-gold mt-4"/>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-gold">
+                <i class="fas fa-save me-1"></i>Save Settings
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

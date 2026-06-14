@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Invoice #{{ bill.bill_number }}{% endblock %}
+{% block page_title %}Invoice Details{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #printableInvoice, #printableInvoice * {
+        visibility: visible;
+    }
+    #printableInvoice {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background-color: white !important;
+        color: black !important;
+    }
+    .main-content, .sidebar, .topbar, .btn-row, .flash-area {
+        display: none !important;
+    }
+    .card, .card-body {
+        border: none !important;
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+    .text-gold, .text-warning, .text-light {
+        color: black !important;
+    }
+    table {
+        border-color: #ddd !important;
+        color: black !important;
+    }
+    th {
+        background-color: #f5f5f5 !important;
+        color: black !important;
+    }
+}
+
+/* ── Fix: Email Invoice Modal ──────────────────────── */
+/* Remove glass blur when modal is open to prevent visual noise */
+body.modal-open .card,
+body.modal-open .card-glass,
+body.modal-open .kpi-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Ensure modal stacks above sidebar (z-index: 1050) */
+#emailInvoiceModal {
+    z-index: 1060;
+}
+
+#emailInvoiceModal .modal-dialog {
+    z-index: 1070;
+    pointer-events: auto;
+}
+
+/* Make modal content stand out against dark backdrop */
+#emailInvoiceModal .modal-content {
+    border: 1px solid var(--gold);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5);
+    background: var(--bg-secondary);
+}
+
+.modal-backdrop {
+    z-index: 1055;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="animate-in">
+    <!-- Action buttons row -->
+    <div class="d-flex justify-content-between mb-4 btn-row">
+        <a href="{{ url_for('billing.bill_history') }}" class="btn btn-outline-gold">
+            <i class="fas fa-arrow-left me-2"></i>Invoice History
+        </a>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-outline-info">
+                <i class="fas fa-print me-2"></i>Print Invoice
+            </button>
+            <a href="{{ url_for('billing.download_pdf', bill_id=bill.bill_id) }}" class="btn btn-outline-gold">
+                <i class="fas fa-file-pdf me-2"></i>Download PDF
+            </a>
+            <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#emailInvoiceModal">
+                <i class="fas fa-envelope me-2"></i>Email Invoice
+            </button>
+        </div>
+    </div>
+
+    <!-- Printable Tax Invoice Wrapper -->
+    <div class="card card-glass" id="printableInvoice">
+        <div class="card-body p-5">
+            <!-- Invoice Header -->
+            <div class="row mb-5">
+                <div class="col-md-6">
+                    <h2 class="text-gold fw-bold mb-1">SHREE JEWELLERS</h2>
+                    <p class="text-muted small mb-0">
+                        123 Gold Street, Mumbai, Maharashtra – 400001<br/>
+                        Phone: +91-9876543210 | Email: info@shreejewellers.com<br/>
+                        GSTIN: 27AAPCA1234A1Z5 | PAN: AAPCA1234A
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end mt-4 mt-md-0">
+                    <h1 class="text-light fw-semibold h3 mb-2">TAX INVOICE</h1>
+                    <div class="text-secondary small">
+                        <strong>Invoice No:</strong> <span class="text-gold fw-mono">{{ bill.bill_number }}</span><br/>
+                        <strong>Date:</strong> {{ bill.bill_date[:16] }}<br/>
+                        <strong>Payment Mode:</strong> <span class="badge bg-secondary">{{ bill.payment_method }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-secondary my-4"/>
+
+            <!-- Customer Details -->
+            <div class="row mb-5">
+                <div class="col-md-6">
+                    <h5 class="text-gold mb-2 small text-uppercase fw-bold">Billed To:</h5>
+                    <div class="text-light fw-semibold fs-5">{{ bill.customer_name or 'Walk-in Customer' }}</div>
+                    <p class="text-muted small mb-0">
+                        Phone: {{ bill.customer_phone or 'Not specified' }}<br/>
+                        Email: {{ bill.customer_email or 'Not specified' }}<br/>
+                        Address: {{ bill.customer_address or 'Not specified' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="table-responsive mb-5">
+                <table class="table table-dark table-striped border-secondary align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Jewellery Item Details</th>
+                            <th class="text-center">Category</th>
+                            <th class="text-center">Purity</th>
+                            <th class="text-end">Weight (gm)</th>
+                            <th class="text-end" style="width: 130px;">Unit Price (₹)</th>
+                            <th class="text-center" style="width: 80px;">Qty</th>
+                            <th class="text-end" style="width: 150px;">Total Price (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="text-light fw-medium">{{ item.item_name }}</div>
+                            </td>
+                            <td class="text-center"><span class="badge bg-dark border border-warning text-gold">{{ item.category }}</span></td>
+                            <td class="text-center">{{ item.purity or '-' }}</td>
+                            <td class="text-end">{{ "{:,.2f}".format(item.weight_gm or 0.0) }}</td>
+                            <td class="text-end">₹{{ "{:,.2f}".format(item.unit_price) }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end text-gold fw-semibold">₹{{ "{:,.2f}".format(item.total_price) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Calculation Breakdowns -->
+            <div class="row g-4">
+                <!-- QR Code & Notes -->
+                <div class="col-md-6 d-flex flex-column justify-content-between">
+                    {% if qr_path %}
+                    <div class="d-flex align-items-center mb-3 gap-3">
+                        <div class="bg-white p-2 rounded border border-warning">
+                            <img src="{{ qr_path if qr_path.startswith('/') else '/' + qr_path }}" alt="Invoice QR Code" style="height: 100px; width: 100px;"/>
+                        </div>
+                        <div>
+                            <div class="text-gold small fw-bold">SCAN QR TO PAY</div>
+                            <div class="text-muted small">Verify invoice details and securely process payment instantly.</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bill.notes %}
+                    <div class="bg-dark-card p-3 rounded border border-secondary">
+                        <div class="text-secondary small fw-bold mb-1">Invoice Notes:</div>
+                        <div class="text-light small">{{ bill.notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Totals Breakdown -->
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Subtotal:</span>
+                        <span class="text-light">₹{{ "{:,.2f}".format(bill.subtotal) }}</span>
+                    </div>
+                    {% if bill.discount > 0 %}
+                    <div class="d-flex justify-content-between mb-2 text-danger">
+                        <span>Discount / Loyalty Redemptions:</span>
+                        <span>-₹{{ "{:,.2f}".format(bill.discount) }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- GST split (India CGST & SGST) -->
+                    <div class="d-flex justify-content-between mb-2 text-warning">
+                        <span>CGST ({{ (gst_rate / 2)|round(2) }}%):</span>
+                        <span>₹{{ "{:,.2f}".format(bill.gst_amount / 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 text-warning">
+                        <span>SGST ({{ (gst_rate / 2)|round(2) }}%):</span>
+                        <span>₹{{ "{:,.2f}".format(bill.gst_amount / 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 text-warning fw-semibold">
+                        <span>Total GST ({{ gst_rate }}%):</span>
+                        <span>₹{{ "{:,.2f}".format(bill.gst_amount) }}</span>
+                    </div>
+
+                    <hr class="border-secondary my-3"/>
+
+                    <div class="d-flex justify-content-between mb-2 fs-3">
+                        <span class="text-gold fw-bold">Grand Total:</span>
+                        <span class="text-gold fw-bold">₹{{ "{:,.2f}".format(bill.total_amount) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legal Disclaimers -->
+            <div class="mt-5 pt-5 border-top border-secondary text-center text-muted small">
+                <p class="mb-1">Thank you for your business! 💎</p>
+                <p class="mb-0">Goods once sold cannot be returned. Please inspect all items and purities carefully.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Invoice Modal -->
+<div class="modal fade" id="emailInvoiceModal" tabindex="-1" aria-labelledby="emailInvoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-gold" id="emailInvoiceModalLabel"><i class="fas fa-envelope me-2"></i>Email Tax Invoice</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            {% if not smtp_configured %}
+            <div class="modal-body text-center py-4">
+                <p class="text-muted mb-3">SMTP not configured.</p>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('settings.index') }}" class="btn btn-gold">Configure SMTP Settings</a>
+            </div>
+            {% else %}
+            <form method="POST" action="{{ url_for('billing.email_bill', bill_id=bill.bill_id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Recipient Email</label>
+                        <input type="email" name="email" class="form-control" placeholder="customer@example.com" value="{{ bill.customer_email or '' }}" required/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold"><i class="fas fa-paper-plane me-1"></i>Send Email</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

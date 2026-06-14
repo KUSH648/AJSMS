@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+{% block title %}New Bill{% endblock %}
+{% block page_title %}💎 New Billing Invoice{% endblock %}
+
+{% block content %}
+<div class="pos-container animate-in">
+    <form id="billingForm" method="POST" action="{{ url_for('billing.new_bill') }}">
+        <!-- Hidden Inputs for Submission -->
+        <input type="hidden" name="customer_id" id="hidden_customer_id" value="0"/>
+        <input type="hidden" name="items_json" id="hidden_items_json" value="[]"/>
+        
+        <div class="row g-4">
+            <!-- Left Panel: Search & Cart -->
+            <div class="col-lg-8">
+                <!-- Customer Search Card -->
+                <div class="card card-glass mb-4">
+                    <div class="card-header text-gold d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-user-tag me-2"></i>Customer Information</span>
+                        <a href="{{ url_for('customer.add_customer') }}" target="_blank" class="btn btn-outline-gold btn-sm"><i class="fas fa-plus me-1"></i>Quick Add</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="position-relative">
+                            <label class="form-label">Search Customer (by Name, Phone, or Email)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark-card border-secondary text-gold"><i class="fas fa-search"></i></span>
+                                <input type="text" id="customerSearch" class="form-control form-control-dark" placeholder="Type customer name or phone..." autocomplete="off"/>
+                            </div>
+                            <div id="customerResults" class="list-group position-absolute w-100 mt-1 shadow" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                        <div id="selectedCustomerBadge" class="mt-3 p-3 bg-dark-card rounded border border-warning" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-gold mb-1" id="badge_name">Walk-in Customer</h6>
+                                    <p class="text-muted mb-0 small" id="badge_phone">+91-9999999999</p>
+                                    <span class="badge bg-gold-gradient text-dark mt-2" id="badge_points">Points: 0</span>
+                                </div>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearSelectedCustomer()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item Search & Cart Card -->
+                <div class="card card-glass">
+                    <div class="card-header text-gold d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-gem me-2"></i>Billing Items</span>
+                        <div>
+                            <!-- Barcode scan triggers -->
+                            <button type="button" class="btn btn-outline-gold btn-sm me-2" onclick="startCameraScanner()">
+                                <i class="fas fa-camera me-1"></i>Scan Barcode
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Camera preview area (hidden by default) -->
+                        <div id="cameraScannerArea" class="mb-4 bg-black p-3 text-center rounded border border-warning" style="display: none;">
+                            <div class="text-gold small mb-2"><i class="fas fa-video me-1"></i>Camera Scan Active</div>
+                            <video id="scannerVideo" width="100%" height="240" style="background-color: #000; border-radius: 8px; max-width: 400px; transform: scaleX(-1);" autoplay playsinline></video>
+                            <canvas id="scannerCanvas" style="display: none;"></canvas>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-gold btn-sm" onclick="captureAndScan()">Capture & Decode</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="stopCameraScanner()">Cancel</button>
+                            </div>
+                        </div>
+
+                        <!-- Item Search Input -->
+                        <div class="position-relative mb-4">
+                            <label class="form-label">Search Jewellery Item (by Name, Barcode, or Category)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark-card border-secondary text-gold"><i class="fas fa-search"></i></span>
+                                <input type="text" id="itemSearch" class="form-control form-control-dark" placeholder="Scan barcode or type name..." autocomplete="off"/>
+                            </div>
+                            <div id="itemResults" class="list-group position-absolute w-100 mt-1 shadow" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+
+                        <!-- Shopping Cart Table -->
+                        <div class="table-responsive">
+                            <table class="table table-dark table-striped align-middle" id="cartTable">
+                                <thead>
+                                    <tr>
+                                        <th>Jewellery Item</th>
+                                        <th class="text-end" style="width: 150px;">Price (₹)</th>
+                                        <th class="text-center" style="width: 120px;">Qty</th>
+                                        <th class="text-end" style="width: 150px;">Total (₹)</th>
+                                        <th class="text-center" style="width: 60px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cartItemsList">
+                                    <tr id="emptyCartRow">
+                                        <td colspan="5" class="text-center text-muted py-5">
+                                            <i class="fas fa-shopping-cart fa-3x mb-3 text-secondary"></i>
+                                            <p>No jewellery items added to invoice yet.</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Notes Area -->
+                        <div class="mt-4">
+                            <label class="form-label text-secondary">Bill Notes / Special Instructions</label>
+                            <textarea name="notes" class="form-control form-control-dark" rows="2" placeholder="e.g. customized sizing request, gift wrapping, etc..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Summary & Checkout -->
+            <div class="col-lg-4">
+                <div class="card card-glass">
+                    <div class="card-header text-gold">
+                        <i class="fas fa-file-invoice-dollar me-2"></i>Invoice Summary
+                    </div>
+                    <div class="card-body">
+                        <!-- Subtotal -->
+                        <div class="d-flex justify-content-between mb-3 fs-5">
+                            <span class="text-secondary">Subtotal:</span>
+                            <span class="text-light" id="summary_subtotal">₹0.00</span>
+                        </div>
+                        
+                        <!-- Discount -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">Special Discount (%)</label>
+                            <div class="input-group">
+                                <input type="number" name="discount_pct" id="discountInput" class="form-control form-control-dark" min="0" max="100" value="0" step="0.5" onchange="recalcInvoice()"/>
+                                <span class="input-group-text bg-dark-card border-secondary text-gold">%</span>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1 text-danger small">
+                                <span>Discount Amount:</span>
+                                <span id="summary_discount_amt">-₹0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Loyalty Points Redemption -->
+                        <div class="mb-3 p-3 bg-dark-card rounded border border-secondary" id="loyaltySection" style="display: none;">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="use_loyalty" id="useLoyaltyToggle" onchange="recalcInvoice()"/>
+                                <label class="form-check-label text-gold" for="useLoyaltyToggle">Redeem Loyalty Points</label>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2 text-danger small">
+                                <span>Points Deductions (₹0.10/pt):</span>
+                                <span id="summary_loyalty_disc">-₹0.00</span>
+                            </div>
+                        </div>
+
+                        <hr class="border-secondary my-3"/>
+
+                        <!-- GST Rate -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">GST rate (%)</label>
+                            <input type="number" name="gst_rate" id="gstRateInput" class="form-control form-control-dark" value="{{ gst_rate }}" step="0.5" onchange="recalcInvoice()"/>
+                            <div class="d-flex justify-content-between mt-2 text-warning small">
+                                <span>GST Amount:</span>
+                                <span id="summary_gst_amt">₹0.00</span>
+                            </div>
+                        </div>
+
+                        <hr class="border-secondary my-3"/>
+
+                        <!-- Grand Total -->
+                        <div class="d-flex justify-content-between mb-4 fs-3">
+                            <span class="text-gold fw-bold">Grand Total:</span>
+                            <span class="text-gold fw-bold" id="summary_total">₹0.00</span>
+                        </div>
+
+                        <!-- Payment Mode -->
+                        <div class="mb-4">
+                            <label class="form-label text-gold"><i class="fas fa-credit-card me-2"></i>Payment Mode</label>
+                            <select name="payment_mode" class="form-select form-select-dark" required>
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Credit/Debit Card</option>
+                                <option value="UPI" selected>UPI Payment (GPay/PhonePe/Paytm)</option>
+                                <option value="Cheque">Bank Cheque</option>
+                                <option value="Bank Transfer">Bank Transfer (NEFT/IMPS)</option>
+                            </select>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-gold btn-lg w-100 py-3" id="btnSubmitBill">
+                            <i class="fas fa-check-circle me-2"></i>Generate Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Cart state
+let cart = [];
+let customer = null;
+let stream = null;
+
+$(document).ready(function() {
+    // 1. Customer Search
+    $('#customerSearch').on('input', function() {
+        let q = $(this).val().trim();
+        if(q.length < 2) {
+            $('#customerResults').hide();
+            return;
+        }
+        $.getJSON('/customers/api/search?q=' + encodeURIComponent(q), function(data) {
+            let html = '';
+            data.forEach(c => {
+                html += `<button type="button" class="list-group-item list-group-item-action bg-dark text-light border-secondary" onclick='selectCustomer(${JSON.stringify(c)})'>
+                    <strong>${c.name}</strong> (${c.phone}) — Points: ${c.loyalty_points}
+                </button>`;
+            });
+            if(data.length) {
+                $('#customerResults').html(html).show();
+            } else {
+                $('#customerResults').hide();
+            }
+        });
+    });
+
+    // Close autocomplete on click outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#customerSearch, #customerResults').length) {
+            $('#customerResults').hide();
+        }
+        if (!$(e.target).closest('#itemSearch, #itemResults').length) {
+            $('#itemResults').hide();
+        }
+    });
+
+    // 2. Item Search
+    $('#itemSearch').on('input', function() {
+        let q = $(this).val().trim();
+        if(q.length < 2) {
+            $('#itemResults').hide();
+            return;
+        }
+        $.getJSON('/inventory/api/search?q=' + encodeURIComponent(q), function(data) {
+            let html = '';
+            data.forEach(i => {
+                html += `<button type="button" class="list-group-item list-group-item-action bg-dark text-light border-secondary" onclick='addItemToCart(${JSON.stringify(i)})'>
+                    <strong>${i.name}</strong> (${i.barcode}) — Stock: ${i.stock_qty} — <span class="text-gold">₹${i.selling_price}</span>
+                </button>`;
+            });
+            if(data.length) {
+                $('#itemResults').html(html).show();
+            } else {
+                $('#itemResults').hide();
+            }
+        });
+    });
+});
+
+// Select Customer
+function selectCustomer(cust) {
+    customer = cust;
+    $('#hidden_customer_id').val(cust.customer_id);
+    $('#badge_name').text(cust.name);
+    $('#badge_phone').text(cust.phone);
+    $('#badge_points').text(`Points: ${cust.loyalty_points}`);
+    $('#selectedCustomerBadge').show();
+    $('#customerResults').hide();
+    $('#customerSearch').val('');
+    
+    if(cust.loyalty_points > 0) {
+        $('#loyaltySection').show();
+    } else {
+        $('#loyaltySection').hide();
+    }
+    recalcInvoice();
+}
+
+// Clear selected customer
+function clearSelectedCustomer() {
+    customer = null;
+    $('#hidden_customer_id').val('0');
+    $('#selectedCustomerBadge').hide();
+    $('#customerSearch').show();
+    $('#loyaltySection').hide();
+    $('#useLoyaltyToggle').prop('checked', false);
+    recalcInvoice();
+}
+
+// Add Item
+function addItemToCart(item) {
+    // Check if already in cart
+    let existing = cart.find(c => c.item_id === item.item_id);
+    if(existing) {
+        if(existing.qty < item.stock_qty) {
+            existing.qty += 1;
+        } else {
+            alert("Maximum stock quantity reached!");
+        }
+    } else {
+        cart.push({
+            item_id: item.item_id,
+            name: item.name,
+            price: parseFloat(item.selling_price),
+            qty: 1,
+            max_qty: item.stock_qty
+        });
+    }
+    $('#itemResults').hide();
+    $('#itemSearch').val('');
+    renderCart();
+}
+
+// Remove Item
+function removeCartItem(idx) {
+    cart.splice(idx, 1);
+    renderCart();
+}
+
+// Change Quantity
+function changeQty(idx, delta) {
+    let item = cart[idx];
+    let newQty = item.qty + delta;
+    if(newQty > 0 && newQty <= item.max_qty) {
+        item.qty = newQty;
+        renderCart();
+    }
+}
+
+// Render Cart
+function renderCart() {
+    if(cart.length === 0) {
+        $('#emptyCartRow').show();
+        $('.cart-item-row').remove();
+    } else {
+        $('#emptyCartRow').hide();
+        $('.cart-item-row').remove();
+        
+        cart.forEach((c, idx) => {
+            let row = `<tr class="cart-item-row">
+                <td>
+                    <div class="fw-semibold text-light">${c.name}</div>
+                </td>
+                <td class="text-end">₹${c.price.toFixed(2)}</td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeQty(${idx}, -1)">-</button>
+                        <span class="btn btn-dark border-secondary px-3" style="cursor: default;">${c.qty}</span>
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeQty(${idx}, 1)">+</button>
+                    </div>
+                </td>
+                <td class="text-end text-gold fw-semibold">₹${(c.price * c.qty).toFixed(2)}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCartItem(${idx})">
+                        <i class="fas fa-trash-can"></i>
+                    </button>
+                </td>
+            </tr>`;
+            $('#cartItemsList').append(row);
+        });
+    }
+    
+    // Store cart json in hidden input
+    $('#hidden_items_json').val(JSON.stringify(cart));
+    recalcInvoice();
+}
+
+// Recalculate Invoice Summary
+function recalcInvoice() {
+    let subtotal = 0;
+    cart.forEach(c => {
+        subtotal += c.price * c.qty;
+    });
+
+    let discPct = parseFloat($('#discountInput').val()) || 0;
+    let discAmt = subtotal * discPct / 100;
+    
+    let loyaltyPts = (customer && $('#useLoyaltyToggle').is(':checked')) ? customer.loyalty_points : 0;
+    let loyaltyDis = loyaltyPts * 0.10; // ₹0.10 per point
+    
+    let gstRate = parseFloat($('#gstRateInput').val()) || 0;
+    
+    // Call calculation API
+    $.ajax({
+        url: '/billing/api/calculate',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            items: cart,
+            discount_pct: discPct,
+            gst_rate: gstRate,
+            use_loyalty: $('#useLoyaltyToggle').is(':checked'),
+            loyalty_points: loyaltyPts
+        }),
+        success: function(res) {
+            $('#summary_subtotal').text('₹' + res.subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+            $('#summary_discount_amt').text('-₹' + res.discount_amt.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+            $('#summary_loyalty_disc').text('-₹' + res.loyalty_dis.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+            $('#summary_gst_amt').text('₹' + res.gst_amount.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+            $('#summary_total').text('₹' + res.total.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+        }
+    });
+}
+
+// CAMERA BARCODE SCANNER
+function startCameraScanner() {
+    $('#cameraScannerArea').show();
+    const video = document.getElementById('scannerVideo');
+    
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(s => {
+        stream = s;
+        video.srcObject = s;
+    })
+    .catch(err => {
+        console.error("Camera access denied:", err);
+        alert("Camera access denied or unsupported.");
+        $('#cameraScannerArea').hide();
+    });
+}
+
+function stopCameraScanner() {
+    if(stream) {
+        stream.getTracks().forEach(t => t.stop());
+    }
+    $('#cameraScannerArea').hide();
+}
+
+function captureAndScan() {
+    const video = document.getElementById('scannerVideo');
+    const canvas = document.getElementById('scannerCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const base64Img = canvas.toDataURL('image/jpeg');
+    
+    // Send to server to decode barcode
+    $.ajax({
+        url: '/inventory/api/scan-barcode',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ image: base64Img }),
+        success: function(res) {
+            if(res.item) {
+                addItemToCart(res.item);
+                stopCameraScanner();
+                showToast(`Barcode ${res.barcode} detected: ${res.item.name}`, 'success');
+            } else {
+                alert(`Barcode detected: ${res.barcode}, but item not found in database.`);
+            }
+        },
+        error: function() {
+            alert("No readable barcode detected. Try again or check lightning.");
+        }
+    });
+}
+
+function showToast(message, type='info') {
+    // Simple custom floating alert
+    let alertBox = `<div class="alert alert-${type} alert-dismissible fade show position-fixed bottom-0 end-0 m-4 shadow" style="z-index: 10000;" role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>`;
+    $('body').append(alertBox);
+    setTimeout(() => { $('.alert').fadeOut(); }, 4000);
+}
+</script>
+{% endblock %}

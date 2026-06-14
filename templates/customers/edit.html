@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Edit Customer{% endblock %}
+{% block page_title %}✏️ Edit Customer Information{% endblock %}
+
+{% block content %}
+<div class="p-4 animate-in">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-glass">
+        <div class="card-header text-gold d-flex align-items-center justify-content-between">
+          <span><i class="fas fa-edit me-2"></i>Update Customer Profile</span>
+          <a href="{{ url_for('customer.customer_profile', customer_id=customer.customer_id) }}" class="btn btn-outline-gold btn-sm">← Back to Profile</a>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('customer.edit_customer', customer_id=customer.customer_id) }}" id="editCustomerForm">
+            <div class="row g-3">
+              <!-- Basic Info -->
+              <div class="col-md-6">
+                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control form-control-dark" value="{{ customer.name }}" required autofocus/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                <input type="text" name="phone" class="form-control form-control-dark" value="{{ customer.phone }}" required/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control form-control-dark" value="{{ customer.email or '' }}"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">GST Number (if B2B)</label>
+                <input type="text" name="gst_number" class="form-control form-control-dark" value="{{ customer.gst_number or '' }}"/>
+              </div>
+              
+              <!-- Dates -->
+              <div class="col-md-6">
+                <label class="form-label">Date of Birth</label>
+                <input type="date" name="dob" class="form-control form-control-dark" value="{{ customer.dob or '' }}"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Anniversary Date</label>
+                <input type="date" name="anniversary" class="form-control form-control-dark" value="{{ customer.anniversary or '' }}"/>
+              </div>
+
+              <!-- Address -->
+              <div class="col-12">
+                <label class="form-label">Residential Address</label>
+                <textarea name="address" class="form-control form-control-dark" rows="2">{{ customer.address or '' }}</textarea>
+              </div>
+
+              <!-- Preferences -->
+              <div class="col-12">
+                <label class="form-label text-gold"><i class="fas fa-tags me-2"></i>Jewellery Preferences</label>
+                <input type="text" name="preferences" class="form-control form-control-dark" value="{{ customer.preferences or '' }}"/>
+              </div>
+            </div>
+            
+            <hr class="hr-gold mt-4"/>
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('customer.customer_profile', customer_id=customer.customer_id) }}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-gold"><i class="fas fa-save me-2"></i>Save Updates</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}Monthly Sales Report{% endblock %}
+{% block page_title %}Monthly Sales Report{% endblock %}
+
+{% block content %}
+<!-- Month/Year Selector -->
+<div class="row mb-4 animate-in">
+    <div class="col-md-8">
+        <div class="card" style="border: 1px solid rgba(212,175,55,0.2);">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('sales.monthly_report') }}" class="d-flex align-items-center gap-3 flex-wrap">
+                    <i class="fas fa-calendar-alt text-gold fa-lg"></i>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="month" class="form-label mb-0 text-light fw-semibold">Month:</label>
+                        <select name="month" id="month" class="form-select bg-dark text-light border-secondary" style="width: 150px;">
+                            {% for m in months %}
+                            <option value="{{ m }}" {% if m == month %}selected{% endif %}>
+                                {{ ['', 'January','February','March','April','May','June','July','August','September','October','November','December'][m] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="year" class="form-label mb-0 text-light fw-semibold">Year:</label>
+                        <select name="year" id="year" class="form-select bg-dark text-light border-secondary" style="width: 120px;">
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-gold">
+                        <i class="fas fa-search me-1"></i> Generate
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 d-flex justify-content-end align-items-center">
+        <span class="badge fs-6 px-3 py-2" style="background: linear-gradient(135deg, var(--gold-light), var(--gold-dark)); color: var(--btn-gold-text);">
+            <i class="fas fa-calendar me-2"></i>
+            {{ ['', 'January','February','March','April','May','June','July','August','September','October','November','December'][month] }} {{ year }}
+        </span>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6 animate-in" style="animation-delay: 0.1s;">
+        <div class="kpi-card">
+            <div class="kpi-icon">
+                <i class="fas fa-rupee-sign"></i>
+            </div>
+            <div class="kpi-label">Monthly Revenue</div>
+            <div class="kpi-value">₹{{ "{:,.2f}".format(summary.total_revenue|default(0)) }}</div>
+            <div class="kpi-sub text-success"><i class="fas fa-chart-line me-1"></i> Total Earnings</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 animate-in" style="animation-delay: 0.2s;">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: linear-gradient(135deg, rgba(0,200,150,0.15), rgba(0,200,150,0.05));">
+                <i class="fas fa-shopping-cart" style="color: #00c896;"></i>
+            </div>
+            <div class="kpi-label">Total Orders</div>
+            <div class="kpi-value">{{ summary.total_orders|default(0) }}</div>
+            <div class="kpi-sub"><i class="fas fa-box me-1"></i> Transactions</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 animate-in" style="animation-delay: 0.3s;">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,107,107,0.05));">
+                <i class="fas fa-receipt" style="color: #ff6b6b;"></i>
+            </div>
+            <div class="kpi-label">GST Collected</div>
+            <div class="kpi-value">₹{{ "{:,.2f}".format(summary.total_gst|default(0)) }}</div>
+            <div class="kpi-sub"><i class="fas fa-file-invoice me-1"></i> Tax Revenue</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 animate-in" style="animation-delay: 0.4s;">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: linear-gradient(135deg, rgba(78,205,255,0.15), rgba(78,205,255,0.05));">
+                <i class="fas fa-calculator" style="color: #4ecdff;"></i>
+            </div>
+            <div class="kpi-label">Avg Daily Revenue</div>
+            <div class="kpi-value">
+                {% if daily_breakdown|length > 0 %}
+                    ₹{{ "{:,.0f}".format(summary.total_revenue / daily_breakdown|length) }}
+                {% else %}
+                    ₹0
+                {% endif %}
+            </div>
+            <div class="kpi-sub"><i class="fas fa-balance-scale me-1"></i> Per Day Average</div>
+        </div>
+    </div>
+</div>
+
+<!-- Profit Breakdown -->
+{% if profit_info %}
+<div class="row mb-4 animate-in" style="animation-delay: 0.45s;">
+    <div class="col-12">
+        <div class="card" style="border: 1px solid rgba(212,175,55,0.3); background: linear-gradient(135deg, rgba(212,175,55,0.05), rgba(0,0,0,0));">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fas fa-coins text-gold"></i>
+                <span>Profit Overview</span>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="text-muted small text-uppercase mb-1">Revenue</div>
+                        <div class="fs-4 fw-bold text-gold">₹{{ "{:,.2f}".format(profit_info.total_revenue|default(0)) }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small text-uppercase mb-1">Cost</div>
+                        <div class="fs-4 fw-bold text-danger">₹{{ "{:,.2f}".format(profit_info.total_cost|default(0)) }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small text-uppercase mb-1">Gross Profit</div>
+                        <div class="fs-4 fw-bold text-success">₹{{ "{:,.2f}".format(profit_info.gross_profit|default(0)) }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small text-uppercase mb-1">Margin</div>
+                        <div class="fs-4 fw-bold" style="color: #4ecdff;">
+                            {% if profit_info.margin_pct is not none %}{{ "{:.1f}".format(profit_info.margin_pct) }}%{% else %}N/A{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Revenue Chart -->
+<div class="row mb-4 animate-in" style="animation-delay: 0.5s;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-chart-bar me-2 text-gold"></i> Daily Revenue Trend</span>
+                <span class="text-muted small">{{ daily_breakdown|length }} days with sales</span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="position: relative; height: 350px;">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Breakdown Table -->
+<div class="row animate-in" style="animation-delay: 0.6s;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-table me-2 text-gold"></i> Daily Breakdown</span>
+                <span class="badge bg-dark text-gold border border-secondary">{{ daily_breakdown|length }} Days</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Revenue (₹)</th>
+                                <th>Orders</th>
+                                <th>Avg per Order</th>
+                                <th>Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set max_total = daily_breakdown|map(attribute='total')|max if daily_breakdown else 1 %}
+                            {% for day in daily_breakdown %}
+                            <tr>
+                                <td>
+                                    <span class="fw-semibold">Day {{ day.day }}</span>
+                                </td>
+                                <td class="fw-bold text-gold">₹{{ "{:,.2f}".format(day.total) }}</td>
+                                <td>{{ day.count }}</td>
+                                <td>₹{{ "{:,.2f}".format(day.total / day.count if day.count > 0 else 0) }}</td>
+                                <td style="width: 200px;">
+                                    <div class="progress" style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                                        <div class="progress-bar" style="width: {{ (day.total / max_total * 100) if max_total > 0 else 0 }}%; background: linear-gradient(90deg, #d4af37, #f4d03f); border-radius: 6px;"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="fas fa-chart-bar fa-3x text-muted mb-3 d-block"></i>
+                                    <p class="text-muted mb-0">No sales data for this month.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = {{ chart_labels|tojson }};
+    const values = {{ chart_values|tojson }};
+
+    if (labels.length > 0) {
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+        gradient.addColorStop(0, 'rgba(212, 175, 55, 0.6)');
+        gradient.addColorStop(1, 'rgba(212, 175, 55, 0.05)');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue (₹)',
+                    data: values,
+                    backgroundColor: gradient,
+                    borderColor: '#d4af37',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    hoverBackgroundColor: 'rgba(212, 175, 55, 0.8)',
+                    hoverBorderColor: '#f4d03f',
+                    hoverBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                        titleColor: '#d4af37',
+                        bodyColor: '#e0e0e0',
+                        borderColor: 'rgba(212,175,55,0.3)',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return '₹' + context.parsed.y.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.03)' },
+                        ticks: { color: '#aaa', font: { size: 11 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            color: '#aaa',
+                            font: { size: 11 },
+                            callback: function(val) { return '₹' + val.toLocaleString('en-IN'); }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Animations
+    document.querySelectorAll('.animate-in').forEach((el, i) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            el.style.transition = 'all 0.5s ease';
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, i * 100);
+    });
+});
+</script>
+{% endblock %}

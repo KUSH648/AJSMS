@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+*.whl
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Environment variables
+.env
+env.example
+
+# Database (local)
+*.db
+*.sqlite3
+*.sqlite
+
+# ML models (large binary files)
+ml_models/*.pkl
+ml_models/*.h5
+ml_models/*.joblib
+
+# Uploads & generated files
+static/uploads/*
+!static/uploads/.gitkeep
+static/bills/*
+!static/bills/.gitkeep
+static/exports/*
+!static/exports/.gitkeep
+static/barcodes/*
+!static/barcodes/.gitkeep
+
+# IDE & editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+log.txt
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.tox/
+nosetests.xml
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Flask
+instance/
+.webassets-cache
+
+# Deployment
+.env.production
+.env.local
+.env.*.local
+
+# OS generated files
+ehthumbs.db
+*.ini

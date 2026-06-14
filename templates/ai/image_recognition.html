@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% block title %}AI Image Recognition{% endblock %}
+{% block page_title %}AI Jewellery Recognition{% endblock %}
+
+{% block content %}
+<style>
+    .drop-zone {
+        border: 3px dashed rgba(212,175,55,0.3);
+        border-radius: 16px;
+        padding: 60px 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, rgba(212,175,55,0.03), rgba(0,0,0,0));
+        position: relative;
+        overflow: hidden;
+    }
+    .drop-zone::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(135deg, rgba(212,175,55,0.1), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+        border-color: #d4af37;
+        background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(0,0,0,0));
+        transform: scale(1.01);
+    }
+    .drop-zone:hover::before, .drop-zone.dragover::before {
+        opacity: 1;
+    }
+    .drop-zone .drop-icon {
+        font-size: 4rem;
+        color: rgba(212,175,55,0.4);
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    .drop-zone:hover .drop-icon {
+        color: #d4af37;
+        transform: scale(1.1);
+    }
+    .image-preview {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 12px;
+        border: 2px solid rgba(212,175,55,0.3);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .confidence-bar {
+        height: 28px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 14px;
+        overflow: hidden;
+        position: relative;
+    }
+    .confidence-bar .fill {
+        height: 100%;
+        border-radius: 14px;
+        transition: width 1s ease;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--btn-gold-text);
+    }
+    .spinner-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(22, 33, 62, 0.85);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        border-radius: 16px;
+        z-index: 10;
+    }
+    .pulse-ring {
+        width: 60px; height: 60px;
+        border: 3px solid #d4af37;
+        border-radius: 50%;
+        animation: pulse-ring 1.5s ease infinite;
+    }
+    @keyframes pulse-ring {
+        0% { transform: scale(0.8); opacity: 1; }
+        100% { transform: scale(1.4); opacity: 0; }
+    }
+</style>
+
+<div class="row g-4">
+    <!-- Upload Section -->
+    <div class="col-lg-6 animate-in">
+        <div class="card h-100" style="border: 1px solid rgba(212,175,55,0.15);">
+            <div class="card-header">
+                <i class="fas fa-camera-retro me-2 text-gold"></i> Upload Jewellery Image
+            </div>
+            <div class="card-body position-relative">
+                <!-- Drop Zone -->
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="drop-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h5 class="text-light mb-2">Drop image here or click to upload</h5>
+                    <p class="text-muted small mb-3">Supports JPG, PNG, WEBP — max 10MB</p>
+                    <span class="btn btn-outline-gold btn-sm">
+                        <i class="fas fa-folder-open me-1"></i> Browse Files
+                    </span>
+                </div>
+
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+                <!-- Camera Button -->
+                <div class="text-center mt-3">
+                    <button class="btn btn-outline-gold btn-sm" id="cameraBtn" onclick="startCamera()">
+                        <i class="fas fa-video me-1"></i> Use Camera
+                    </button>
+                </div>
+
+                <!-- Camera Preview -->
+                <div id="cameraContainer" class="mt-3" style="display: none;">
+                    <video id="cameraFeed" autoplay playsinline class="w-100 rounded-3" style="border: 2px solid rgba(212,175,55,0.3);"></video>
+                    <div class="d-flex gap-2 mt-2 justify-content-center">
+                        <button class="btn btn-gold btn-sm" onclick="capturePhoto()">
+                            <i class="fas fa-camera me-1"></i> Capture
+                        </button>
+                        <button class="btn btn-outline-gold btn-sm" onclick="stopCamera()">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Image Preview -->
+                <div id="previewContainer" class="text-center mt-4" style="display: none;">
+                    <img id="imagePreview" class="image-preview" alt="Preview">
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-gold" onclick="clearImage()">
+                            <i class="fas fa-times me-1"></i> Remove
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div class="spinner-overlay" id="loadingOverlay" style="display: none;">
+                    <div class="pulse-ring mb-3"></div>
+                    <div class="text-gold fw-semibold">Analyzing Image...</div>
+                    <div class="text-muted small mt-1">AI is identifying the jewellery</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="col-lg-6 animate-in" style="animation-delay: 0.1s;">
+        <!-- Placeholder (before results) -->
+        <div id="resultsPlaceholder" class="card h-100 d-flex align-items-center justify-content-center" style="border: 1px solid rgba(255,255,255,0.05);">
+            <div class="text-center p-5">
+                <div style="font-size: 5rem; opacity: 0.15;">
+                    <i class="fas fa-search-plus text-gold"></i>
+                </div>
+                <h5 class="text-muted mt-3">Upload an Image to Begin</h5>
+                <p class="text-muted small">Our AI will identify the jewellery type and category</p>
+            </div>
+        </div>
+
+        <!-- Results Card (hidden initially) -->
+        <div id="resultsCard" class="card h-100" style="display: none; border: 1px solid rgba(212,175,55,0.3);">
+            <div class="card-header" style="background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(0,0,0,0));">
+                <i class="fas fa-sparkles me-2 text-gold"></i> Recognition Results
+            </div>
+            <div class="card-body">
+                <!-- Detected Category -->
+                <div class="ai-result-card text-center p-4 mb-4 rounded-3" style="background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(0,0,0,0)); border: 1px solid rgba(212,175,55,0.2);">
+                    <div id="resultIcon" style="font-size: 3rem; color: #d4af37;" class="mb-2">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <h3 id="resultCategory" class="text-gold fw-bold mb-2">—</h3>
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <span class="text-muted">Confidence:</span>
+                        <span id="resultConfidence" class="fs-4 fw-bold text-success">0%</span>
+                    </div>
+                    <!-- Main Confidence Bar -->
+                    <div class="confidence-bar mt-3">
+                        <div id="mainConfidenceBar" class="fill" style="width: 0%; background: linear-gradient(90deg, #d4af37, #f4d03f);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Category Scores -->
+                <h6 class="text-light mb-3"><i class="fas fa-chart-bar me-2 text-gold"></i> Category Scores</h6>
+                <div id="categoryScores">
+                    <div class="mb-3" data-category="Ring">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-light"><i class="fas fa-ring me-1 text-gold"></i> Ring</span>
+                            <span class="small text-muted score-value">0%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="fill" style="width: 0%; background: linear-gradient(90deg, #d4af37, #f4d03f);"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3" data-category="Necklace">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-light"><i class="fas fa-link me-1" style="color: #4ecdff;"></i> Necklace</span>
+                            <span class="small text-muted score-value">0%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="fill" style="width: 0%; background: linear-gradient(90deg, #4ecdff, #00d4ff);"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3" data-category="Bracelet">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-light"><i class="far fa-circle me-1" style="color: #a259ff;"></i> Bracelet</span>
+                            <span class="small text-muted score-value">0%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="fill" style="width: 0%; background: linear-gradient(90deg, #a259ff, #c084fc);"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3" data-category="Earrings">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-light"><i class="fas fa-star me-1" style="color: #00c896;"></i> Earrings</span>
+                            <span class="small text-muted score-value">0%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="fill" style="width: 0%; background: linear-gradient(90deg, #00c896, #34d399);"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3" data-category="Other">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-light"><i class="fas fa-ellipsis-h me-1" style="color: #ff6b6b;"></i> Other</span>
+                            <span class="small text-muted score-value">0%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="fill" style="width: 0%; background: linear-gradient(90deg, #ff6b6b, #f87171);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Similar Items -->
+                <div class="mt-4 p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+                    <h6 class="text-light mb-2"><i class="fas fa-th me-2 text-gold"></i> Similar Items in Stock</h6>
+                    <div id="similarItems" class="text-muted small">
+                        <p class="mb-0">Upload an image to see matching inventory items.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const previewContainer = document.getElementById('previewContainer');
+const imagePreview = document.getElementById('imagePreview');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+const resultsCard = document.getElementById('resultsCard');
+let cameraStream = null;
+
+// Drag & Drop handlers
+['dragenter', 'dragover'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+});
+['dragleave', 'drop'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+    });
+});
+dropZone.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleFile(files[0]);
+});
+
+// File input change
+fileInput.addEventListener('change', e => {
+    if (e.target.files.length > 0) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file.');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        showPreview(base64);
+        recognizeImage(base64);
+    };
+    reader.readAsDataURL(file);
+}
+
+function showPreview(src) {
+    imagePreview.src = src;
+    previewContainer.style.display = 'block';
+    dropZone.style.display = 'none';
+}
+
+function clearImage() {
+    previewContainer.style.display = 'none';
+    dropZone.style.display = 'block';
+    fileInput.value = '';
+    resultsCard.style.display = 'none';
+    resultsPlaceholder.style.display = 'flex';
+}
+
+function recognizeImage(base64data) {
+    loadingOverlay.style.display = 'flex';
+
+    fetch('/ai/api/recognize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64data })
+    })
+    .then(res => res.json())
+    .then(data => {
+        loadingOverlay.style.display = 'none';
+        displayResults(data);
+    })
+    .catch(err => {
+        loadingOverlay.style.display = 'none';
+        console.error('Recognition error:', err);
+        alert('An error occurred during recognition. Please try again.');
+    });
+}
+
+function displayResults(data) {
+    resultsPlaceholder.style.display = 'none';
+    resultsCard.style.display = 'block';
+
+    const category = data.category || 'Unknown';
+    const confidence = data.confidence || 0;
+    const scores = data.scores || {};
+
+    // Icon mapping
+    const icons = {
+        'Ring': 'fa-ring',
+        'Necklace': 'fa-link',
+        'Bracelet': 'fa-circle',
+        'Earrings': 'fa-star',
+        'Other': 'fa-gem'
+    };
+
+    document.getElementById('resultCategory').textContent = category;
+    document.getElementById('resultIcon').innerHTML = `<i class="fas ${icons[category] || 'fa-gem'}"></i>`;
+    document.getElementById('resultConfidence').textContent = confidence.toFixed(1) + '%';
+
+    // Animate main confidence bar
+    setTimeout(() => {
+        document.getElementById('mainConfidenceBar').style.width = confidence + '%';
+    }, 100);
+
+    // Update category scores
+    const categories = ['Ring', 'Necklace', 'Bracelet', 'Earrings', 'Other'];
+    categories.forEach(cat => {
+        const score = scores[cat] || 0;
+        const el = document.querySelector(`[data-category="${cat}"]`);
+        if (el) {
+            el.querySelector('.score-value').textContent = score.toFixed(1) + '%';
+            setTimeout(() => {
+                el.querySelector('.fill').style.width = score + '%';
+            }, 200);
+        }
+    });
+
+    // Similar items
+    if (data.similar_items && data.similar_items.length > 0) {
+        let html = '<div class="row g-2">';
+        data.similar_items.forEach(item => {
+            html += `<div class="col-6"><div class="p-2 rounded" style="background:rgba(212,175,55,0.05);border:1px solid rgba(212,175,55,0.1);">
+                <div class="small fw-semibold text-light">${item.name}</div>
+                <div class="small text-gold">₹${Number(item.price).toLocaleString('en-IN')}</div>
+            </div></div>`;
+        });
+        html += '</div>';
+        document.getElementById('similarItems').innerHTML = html;
+    }
+}
+
+// Camera functions
+function startCamera() {
+    const container = document.getElementById('cameraContainer');
+    const video = document.getElementById('cameraFeed');
+    container.style.display = 'block';
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+        cameraStream = stream;
+        video.srcObject = stream;
+    })
+    .catch(err => {
+        console.error('Camera error:', err);
+        alert('Unable to access camera.');
+        container.style.display = 'none';
+    });
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraFeed');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const base64 = canvas.toDataURL('image/jpeg');
+    stopCamera();
+    showPreview(base64);
+    recognizeImage(base64);
+}
+
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+    }
+    document.getElementById('cameraContainer').style.display = 'none';
+}
+
+// Animations
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.animate-in').forEach((el, i) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            el.style.transition = 'all 0.5s ease';
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, i * 100);
+    });
+});
+</script>
+{% endblock %}

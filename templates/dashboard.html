@@ -1,0 +1,1100 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}System Dashboard{% endblock %}
+
+{% block content %}
+<div class="animate-in pb-5">
+    
+    <!-- Welcome Header with Personalized Greeting -->
+    <div class="welcome-header-v2 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2 class="welcome-greeting-v2" id="welcomeGreeting">Hello, {{ current_user.name if current_user.is_authenticated else 'Guest' }}</h2>
+            <div class="welcome-subtitle-v2" id="welcomeSubtitle">
+                <i class="fas fa-calendar-alt me-1 text-gold"></i> Loading boutique overview...
+            </div>
+        </div>
+        
+        <!-- Quick Stats Badge -->
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-gold-gradient text-dark p-2 px-3 border-0 d-flex align-items-center gap-2" style="font-size: 0.78rem; font-weight: 700; border-radius: 8px;">
+                <i class="fas fa-shield-halved"></i> Boutique Status: Active
+            </span>
+        </div>
+    </div>
+    
+    <!-- Premium Live Rates Ticker -->
+    <div class="ticker-v2 mb-4" id="goldPriceTicker">
+        <div class="ticker-label-v2">
+            <i class="fas fa-coins"></i>
+            <span>Live Rates</span>
+        </div>
+        <div class="ticker-rates px-2">
+            <div class="ticker-rate-chip">
+                <span class="rate-label">24K Gold</span>
+                <span class="rate-value" id="rate24k">₹7,250</span>
+                <span class="rate-change up" id="change24k"><i class="fas fa-caret-up"></i> +0.4%</span>
+            </div>
+            <div class="ticker-rate-chip">
+                <span class="rate-label">22K Gold</span>
+                <span class="rate-value" id="rate22k">₹6,640</span>
+                <span class="rate-change up" id="change22k"><i class="fas fa-caret-up"></i> +0.3%</span>
+            </div>
+            <div class="ticker-rate-chip">
+                <span class="rate-label">18K Gold</span>
+                <span class="rate-value" id="rate18k">₹5,440</span>
+                <span class="rate-change down" id="change18k"><i class="fas fa-caret-down"></i> -0.1%</span>
+            </div>
+            <div class="ticker-rate-chip">
+                <span class="rate-label">Silver</span>
+                <span class="rate-value" id="rateSilver">₹88</span>
+                <span class="rate-change up" id="changeSilver"><i class="fas fa-caret-up"></i> +1.2%</span>
+            </div>
+        </div>
+        <div class="ticker-refresh ms-auto">
+            <button onclick="fetchGoldPrices(true)" class="ticker-refresh-btn" id="tickerRefreshBtn" title="Refresh prices">
+                <i class="fas fa-arrows-rotate"></i>
+            </button>
+        </div>
+        <div class="ticker-last-update text-muted" id="rateSource">Updated just now</div>
+    </div>
+
+    <!-- Row 1: KPI Cards with Sparklines -->
+    <div class="row g-4 mb-4">
+        <!-- Today's Revenue -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card-v2 kpi-gold position-relative h-100">
+                <div class="kpi-orb"></div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="kpi-icon-v2">
+                        <i class="fas fa-indian-rupee-sign"></i>
+                    </div>
+                    <span class="kpi-trend-pill up" id="today-sales-trend"><i class="fas fa-arrow-trend-up"></i> +12.4%</span>
+                </div>
+                <div class="kpi-label-v2">Today's Revenue</div>
+                <div class="kpi-value-v2 text-gold animate-counter" id="kpi-today-sales" data-value="{{ stats.today_sales or 0.0 }}">₹0.00</div>
+                
+                <!-- Sparkline Chart -->
+                <div id="sparklineToday" class="kpi-sparkline"></div>
+                
+                <div class="kpi-footer border-0 p-0 mt-2">
+                    <div class="kpi-sub"><i class="fas fa-shopping-bag text-gold"></i> {{ stats.today_orders or 0 }} orders today</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monthly Revenue -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card-v2 kpi-emerald position-relative h-100">
+                <div class="kpi-orb"></div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="kpi-icon-v2">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span class="kpi-trend-pill up" id="month-sales-trend"><i class="fas fa-arrow-trend-up"></i> +14.2%</span>
+                </div>
+                <div class="kpi-label-v2">Monthly Revenue</div>
+                <div class="kpi-value-v2 animate-counter" id="kpi-month-sales" data-value="{{ stats.month_sales or 0.0 }}">₹0.00</div>
+                
+                <!-- Sparkline Chart -->
+                <div id="sparklineMonth" class="kpi-sparkline"></div>
+                
+                <div class="kpi-footer border-0 p-0 mt-2">
+                    <div class="kpi-sub"><i class="fas fa-receipt text-success"></i> {{ stats.month_orders or 0 }} orders this month</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Products -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card-v2 kpi-blue position-relative h-100">
+                <div class="kpi-orb"></div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="kpi-icon-v2">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <span class="kpi-trend-pill up" id="stock-trend"><i class="fas fa-arrow-trend-up"></i> +1.8%</span>
+                </div>
+                <div class="kpi-label-v2">Total Products</div>
+                <div class="kpi-value-v2 animate-counter" id="kpi-total-items" data-value="{{ stats.total_items or 0 }}">0</div>
+                
+                <!-- Sparkline Chart -->
+                <div id="sparklineProducts" class="kpi-sparkline"></div>
+                
+                <div class="kpi-footer border-0 p-0 mt-2">
+                    <div class="kpi-sub text-warning"><i class="fas fa-triangle-exclamation"></i> {{ stats.low_stock_count or 0 }} Low stock items</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Customers -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card-v2 kpi-purple position-relative h-100">
+                <div class="kpi-orb"></div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="kpi-icon-v2">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <span class="kpi-trend-pill up" id="customers-trend"><i class="fas fa-arrow-trend-up"></i> +9.2%</span>
+                </div>
+                <div class="kpi-label-v2">Total Customers</div>
+                <div class="kpi-value-v2 animate-counter" id="kpi-total-customers" data-value="{{ stats.total_customers or 0 }}">0</div>
+                
+                <!-- Sparkline Chart -->
+                <div id="sparklineCustomers" class="kpi-sparkline"></div>
+                
+                <div class="kpi-footer border-0 p-0 mt-2">
+                    <div class="kpi-sub text-info"><i class="fas fa-user-tie"></i> {{ stats.total_employees or 0 }} Active employees</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <div class="mb-4">
+        <div class="section-header">
+            <h5 class="section-title"><i class="fas fa-bolt text-gold"></i> Quick Actions</h5>
+        </div>
+        <div class="quick-actions-grid">
+            <a href="{{ url_for('billing.new_bill') }}" class="quick-action-card qa-bill">
+                <div class="qa-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                <span class="qa-label">Create New Invoice</span>
+            </a>
+            <a href="{{ url_for('inventory.list_items') }}" class="quick-action-card qa-product">
+                <div class="qa-icon"><i class="fas fa-gem"></i></div>
+                <span class="qa-label">Manage Inventory</span>
+            </a>
+            <a href="{{ url_for('customer.list_customers') }}" class="quick-action-card qa-customer">
+                <div class="qa-icon"><i class="fas fa-user-plus"></i></div>
+                <span class="qa-label">Add Customer</span>
+            </a>
+            <a href="{{ url_for('sales.daily_report') }}" class="quick-action-card qa-report">
+                <div class="qa-icon"><i class="fas fa-chart-line"></i></div>
+                <span class="qa-label">Daily Sales Report</span>
+            </a>
+        </div>
+    </div>
+
+    <style>
+    .showcase-img-container:hover .showcase-img {
+        transform: scale(1.06);
+    }
+    .showcase-img {
+        transform: scale(1);
+        transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    </style>
+
+    <!-- Row 1.5: Premium Boutique Showcase -->
+    {% if top_items %}
+    <div class="mb-5 animate-in" style="animation-delay: 0.25s;">
+        <div class="section-header d-flex justify-content-between align-items-center mb-3">
+            <h5 class="section-title text-gold mb-0">
+                <i class="fas fa-gem me-2"></i> Boutique Masterpieces Showcase
+            </h5>
+            <span class="text-muted small">Top Selling Luxury Highlights</span>
+        </div>
+        
+        <div class="row g-4">
+            {% for item in top_items %}
+            <div class="col-xl-3 col-md-6">
+                <div class="card h-100 position-relative overflow-hidden" 
+                     style="border: 1px solid var(--border); background: var(--bg-secondary); border-radius: var(--radius-md); cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; transition: all var(--transition);"
+                     onclick="window.location.href='{{ url_for('inventory.view_item', item_id=item.item_id) }}'">
+                    
+                    {% set img_rel = get_jewellery_image_path(item) %}
+                    {% if img_rel.startswith('http') %}
+                        {% set img_src = img_rel %}
+                    {% else %}
+                        {% set img_src = url_for('static', filename=img_rel) %}
+                    {% endif %}
+                    
+                    <!-- Product Image container -->
+                    <div class="showcase-img-container" style="position: relative; height: 200px; overflow: hidden; background: var(--bg-tertiary);">
+                        <img src="{{ img_src }}" 
+                             alt="{{ item.name }}" 
+                             class="showcase-img"
+                             style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);"
+                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/placeholder.png') }}'"/>
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 70px; z-index: 2;"></div>
+                        
+                        <!-- Units Sold badge overlay -->
+                        <span class="badge position-absolute m-3" style="top: 0; right: 0; background: linear-gradient(135deg, var(--gold-light), var(--gold-dark)); color: var(--btn-gold-text); font-size: 0.7rem; font-weight: 700; border-radius: 6px; z-index: 5; box-shadow: 0 4px 10px var(--gold-glow);">
+                            <i class="fas fa-fire me-1"></i>{{ item.units_sold }} Sold
+                        </span>
+                        
+                        <!-- Category Badge overlay -->
+                        <span class="badge position-absolute m-3" style="bottom: 8px; left: 8px; background: var(--bg-glass); color: var(--text-primary); border: 1px solid var(--border); font-size: 0.65rem; border-radius: 4px; z-index: 5; backdrop-filter: blur(4px);">
+                            {{ item.category }}
+                        </span>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body p-4 pt-3 d-flex flex-column justify-content-between flex-grow-1">
+                        <div>
+                            <!-- Product Name -->
+                            <h6 class="fw-bold mb-2" style="font-family: 'Outfit', sans-serif; font-size: 0.95rem; line-height: 1.3; color: var(--text-primary);">{{ item.name }}</h6>
+                            
+                            <!-- Specs details -->
+                            <div class="d-flex align-items-center justify-content-between text-muted small mb-2" style="font-size: 0.75rem;">
+                                <div>
+                                    <i class="fas fa-layer-group text-gold me-1" style="font-size: 0.7rem;"></i>
+                                    <span>{{ item.material }}</span>
+                                </div>
+                                <div>
+                                    <i class="fas fa-certificate text-gold me-1" style="font-size: 0.7rem;"></i>
+                                    <span>{{ item.purity }}</span>
+                                </div>
+                                {% if item.weight_gm %}
+                                <div>
+                                    <i class="fas fa-weight-hanging text-gold me-1" style="font-size: 0.7rem;"></i>
+                                    <span>{{ item.weight_gm }}g</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <!-- Price & CTA -->
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3" style="border-top: 1px dashed rgba(212,175,55,0.12);">
+                                <span class="fs-5 fw-bold text-gold">₹{{ "{:,.0f}".format(item.selling_price) }}</span>
+                                <span class="btn btn-outline-gold py-1 px-3" style="font-size: 0.7rem; border-radius: 6px; border: 1px solid var(--border);" onclick="event.stopPropagation(); window.location.href='{{ url_for('inventory.view_item', item_id=item.item_id) }}'">
+                                    <i class="fas fa-eye me-1"></i> Quick View
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Row 2: Main Charts Section (Forecasting & Breakdown) -->
+    <div class="row g-4 mb-4">
+        <!-- Sales Trend & Revenue Forecasting Line Chart -->
+        <div class="col-lg-8">
+            <div class="chart-card h-100">
+                <div class="chart-card-header">
+                    <h6><i class="fas fa-chart-line text-gold"></i> Sales Revenue Trend & 90-Day Forecast</h6>
+                    <span class="chart-meta">Dashed line indicates predictive forecast</span>
+                </div>
+                <div class="chart-card-body">
+                    <!-- Skeleton Loader -->
+                    <div id="salesTrendChartLoader" class="skeleton-loader w-100" style="height: 320px; display: block; border-radius: 12px;"></div>
+                    <div id="salesTrendChartApex" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Category Breakdown Pie Chart -->
+        <div class="col-lg-4">
+            <div class="chart-card h-100">
+                <div class="chart-card-header">
+                    <h6><i class="fas fa-chart-pie text-gold"></i> Sales by Category</h6>
+                    <span class="chart-meta">Revenue share split</span>
+                </div>
+                <div class="chart-card-body">
+                    <!-- Skeleton Loader -->
+                    <div id="categoryPieChartLoader" class="skeleton-loader w-100" style="height: 320px; display: block; border-radius: 12px;"></div>
+                    <div id="categoryPieChartApex" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3: Product Operations & Indicators -->
+    <div class="row g-4 mb-4">
+        <!-- Radial Gauge Operational Metrics Card -->
+        <div class="col-lg-6">
+            <div class="card card-glass h-100">
+                <div class="card-header border-bottom-0 pb-0">
+                    <h5 class="card-title text-gold" style="font-family: 'Outfit', sans-serif; font-size: 0.95rem;">
+                        <i class="fas fa-shield-halved me-1 text-gold"></i> Operations Indicators
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4 align-items-center justify-content-center text-center">
+                        <div class="col-6">
+                            <div class="d-flex flex-column align-items-center">
+                                <div id="inventoryHealthApex"></div>
+                                <span class="fw-semibold text-light mt-2" style="font-size: 0.82rem;">Inventory Health</span>
+                                <small class="text-muted" style="font-size: 0.7rem;">Stocked vs Low-Stock</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex flex-column align-items-center">
+                                <div id="goldSilverRatioApex"></div>
+                                <span class="fw-semibold text-light mt-2" style="font-size: 0.82rem;">Gold : Silver Ratio</span>
+                                <small class="text-muted" style="font-size: 0.7rem;">Sales distribution</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Inventory Widget -->
+        <div class="col-lg-6">
+            <div class="card card-glass h-100">
+                <div class="card-header">
+                    <h5 class="card-title text-gold" style="font-family: 'Outfit', sans-serif; font-size: 0.95rem;">
+                        <i class="fas fa-triangle-exclamation me-2 text-gold"></i> Low Stock Alert Widget
+                    </h5>
+                </div>
+                <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
+                    {% if low_stock %}
+                        {% for item in low_stock %}
+                        <div class="low-stock-item">
+                            <div class="low-stock-info">
+                                <div class="low-stock-name text-light">{{ item.name }}</div>
+                                <div class="low-stock-meta text-muted">{{ item.category }} · Item ID: #{{ item.id or item.item_id }}</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="low-stock-badge">{{ item.stock }} left</span>
+                                <a href="{{ url_for('inventory.list_items') }}" class="btn btn-outline-gold btn-sm py-1 px-3" style="font-size: 0.72rem; border-radius: 6px;">Restock</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Empty State illustration -->
+                        <div class="empty-state-card border-0 bg-transparent m-3">
+                            <div class="empty-state-icon text-success"><i class="fas fa-circle-check"></i></div>
+                            <div class="fw-bold text-light" style="font-size: 0.85rem;">Inventory is Healthy</div>
+                            <div class="empty-state-text">All boutique jewellery items are safely above low-stock thresholds.</div>
+                            <a href="{{ url_for('inventory.list_items') }}" class="btn btn-gold btn-sm empty-state-btn px-3">Manage Inventory</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 4: Recent Activity & Recent Transactions -->
+    <div class="row g-4">
+        <!-- Recent Transactions -->
+        <div class="col-lg-7">
+            <div class="card card-glass h-100">
+                <div class="card-header">
+                    <h5 class="card-title text-gold" style="font-family: 'Outfit', sans-serif; font-size: 0.95rem;">
+                        <i class="fas fa-receipt me-2 text-gold"></i> Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive premium-table-wrapper">
+                        <table class="premium-table mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Payment</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_sales %}
+                                    {% for sale in recent_sales %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="cust-avatar">{{ sale.customer_name[0].upper() if sale.customer_name else 'W' }}</div>
+                                                <div>
+                                                    <div class="fw-semibold text-light">{{ sale.customer_name or 'Walk-in Customer' }}</div>
+                                                    <small class="text-muted">Handled by {{ sale.employee_name or 'Staff' }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="font-size: 0.8rem;">{{ sale.sale_date[:10] }}</div>
+                                            <small class="text-muted font-monospace">{{ sale.sale_date[11:16] }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="pay-badge {{ sale.payment_method.lower() }}">
+                                                <i class="fas fa-{{ 'money-bill-wave' if sale.payment_method.lower() == 'cash' else 'credit-card' if sale.payment_method.lower() == 'card' else 'mobile-screen' if sale.payment_method.lower() == 'upi' else 'receipt' }}"></i>
+                                                {{ sale.payment_method | upper }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end text-gold fw-semibold">₹{{ "{:,.2f}".format(sale.total_amount) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Empty State -->
+                                    <tr>
+                                        <td colspan="4">
+                                            <div class="empty-state-card border-0 bg-transparent py-5">
+                                                <div class="empty-state-icon"><i class="fas fa-receipt"></i></div>
+                                                <div class="fw-bold text-light" style="font-size: 0.85rem;">No Transactions</div>
+                                                <div class="empty-state-text">No invoices or sales bills have been processed today.</div>
+                                                <a href="{{ url_for('billing.new_bill') }}" class="btn btn-gold btn-sm empty-state-btn px-3">Create Invoice</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Customer Activity Timeline Widget -->
+        <div class="col-lg-5">
+            <div class="card card-glass h-100">
+                <div class="card-header">
+                    <h5 class="card-title text-gold" style="font-family: 'Outfit', sans-serif; font-size: 0.95rem;">
+                        <i class="fas fa-clock-rotate-left me-2 text-gold"></i> Customer Activity Timeline
+                    </h5>
+                </div>
+                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                    <div class="d-flex flex-column">
+                        {% set ns = namespace(has_activity=false) %}
+                        
+                        {% if recent_sales %}
+                            {% set ns.has_activity = true %}
+                            {% for sale in recent_sales[:3] %}
+                            <div class="activity-item">
+                                <div class="activity-icon purchase">
+                                    <i class="fas fa-shopping-bag"></i>
+                                </div>
+                                <div class="activity-info">
+                                    <div class="activity-text">
+                                        <strong>{{ sale.customer_name or 'Walk-in Customer' }}</strong> bought items for <strong>₹{{ "{:,.2f}".format(sale.total_amount) }}</strong>.
+                                    </div>
+                                    <div class="activity-time"><i class="fas fa-user-clock me-1"></i> Sale logged by {{ sale.employee_name or 'Staff' }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if birthdays %}
+                            {% set ns.has_activity = true %}
+                            {% for b in birthdays[:2] %}
+                            <div class="activity-item">
+                                <div class="activity-icon signup">
+                                    <i class="fas fa-cake-candles"></i>
+                                </div>
+                                <div class="activity-info">
+                                    <div class="activity-text">
+                                        Client birthday upcoming: <strong>{{ b.name }}</strong> on <strong>{{ b.dob[5:10] }}</strong>.
+                                    </div>
+                                    <div class="activity-time"><i class="fas fa-envelope-open-text me-1"></i> Send promotional greeting coupon</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if low_stock %}
+                            {% set ns.has_activity = true %}
+                            {% for item in low_stock[:2] %}
+                            <div class="activity-item">
+                                <div class="activity-icon alert">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                </div>
+                                <div class="activity-info">
+                                    <div class="activity-text">
+                                        Stock Alert: <strong>{{ item.name }}</strong> is running low ({{ item.stock }} left).
+                                    </div>
+                                    <div class="activity-time"><i class="fas fa-triangle-exclamation me-1"></i> Stock level below safe minimum</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if not ns.has_activity %}
+                            <!-- Empty State -->
+                            <div class="empty-state-card border-0 bg-transparent py-5">
+                                <div class="empty-state-icon"><i class="fas fa-clipboard-list"></i></div>
+                                <div class="fw-bold text-light" style="font-size: 0.85rem;">No Recent Activities</div>
+                                <div class="empty-state-text">No active client logs, alerts, or checkout transactions available.</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Floating Action Button (FAB) -->
+<div class="fab-container" id="dashboardFab">
+    <button class="fab-main" id="fabMainBtn" title="Quick Actions">
+        <i class="fas fa-plus"></i>
+    </button>
+    <div class="fab-menu">
+        <a href="{{ url_for('billing.new_bill') }}" class="fab-item">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span class="fab-tooltip">New invoice</span>
+        </a>
+        <a href="{{ url_for('ai.chatbot') }}" class="fab-item">
+            <i class="fas fa-robot"></i>
+            <span class="fab-tooltip">Consult AI Bot</span>
+        </a>
+        <a href="{{ url_for('inventory.list_items') }}" class="fab-item">
+            <i class="fas fa-gem"></i>
+            <span class="fab-tooltip">Stock check</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Determine Time-based Personalized Greeting
+    function updateGreeting() {
+        const greetingEl = document.getElementById('welcomeGreeting');
+        const subtitleEl = document.getElementById('welcomeSubtitle');
+        if (!greetingEl) return;
+        
+        const now = new Date();
+        const hr = now.getHours();
+        let greeting = "Good Morning";
+        let sub = "Here is what is happening at your boutique today.";
+        
+        if (hr >= 12 && hr < 17) {
+            greeting = "Good Afternoon";
+            sub = "Midday status update. Let's check operations.";
+        } else if (hr >= 17 || hr < 4) {
+            greeting = "Good Evening";
+            sub = "Closing hours check. Reviewing checkout performance.";
+        }
+        
+        const adminName = "{{ current_user.name if current_user.is_authenticated else 'Guest' }}";
+        greetingEl.textContent = `${greeting}, ${adminName}`;
+        subtitleEl.innerHTML = `<i class="fas fa-calendar-alt me-1 text-gold"></i> ${sub}`;
+    }
+    updateGreeting();
+
+    // Determine Theme Mode
+    const getChartTheme = () => document.body.classList.contains('light-mode') ? 'light' : 'dark';
+    let currentTheme = getChartTheme();
+    const primaryGold = '#D4AF37';
+
+    // Global chart references for theme toggling
+    let spark1, spark2, spark3, spark4;
+    let trendChart, catChart, ratioChart, healthChart;
+
+    // ───────────────────────────────────────────────
+    // 1. Counter Animations
+    // ───────────────────────────────────────────────
+    function animateCounters() {
+        document.querySelectorAll('.animate-counter').forEach(el => {
+            const val = parseFloat(el.getAttribute('data-value')) || 0;
+            const id = el.id;
+            const isCurrency = id.includes('sales');
+            
+            let start = 0;
+            const duration = 1200; // 1.2 seconds
+            const stepTime = 20;
+            const steps = duration / stepTime;
+            const increment = val / steps;
+            
+            let currentStep = 0;
+            const timer = setInterval(() => {
+                currentStep++;
+                start += increment;
+                if (currentStep >= steps) {
+                    clearInterval(timer);
+                    if (isCurrency) {
+                        el.textContent = formatINR(val);
+                    } else {
+                        el.textContent = Math.round(val).toLocaleString('en-IN');
+                    }
+                } else {
+                    if (isCurrency) {
+                        el.textContent = formatINR(start);
+                    } else {
+                        el.textContent = Math.round(start).toLocaleString('en-IN');
+                    }
+                }
+            }, stepTime);
+        });
+    }
+    animateCounters();
+
+    // ───────────────────────────────────────────────
+    // 2. Mini Sparkline Charts (ApexCharts)
+    // ───────────────────────────────────────────────
+    // Fetch weekly sales to plot actual dynamic sparklines for Today and Monthly sales
+    fetch('/sales/api/weekly-chart')
+        .then(r => r.json())
+        .then(weekly => {
+            const weeklyValues = weekly.values && weekly.values.length ? weekly.values : [15, 18, 12, 24, 20, 22, 28];
+            
+            // Sparkline 1: Today's Revenue
+            spark1 = new ApexCharts(document.querySelector("#sparklineToday"), {
+                series: [{ data: weeklyValues }],
+                chart: { type: 'area', height: 40, sparkline: { enabled: true } },
+                colors: [primaryGold],
+                stroke: { curve: 'smooth', width: 2 },
+                fill: { type: 'gradient', gradient: { opacityFrom: 0.3, opacityTo: 0 } },
+                tooltip: { enabled: false }
+            });
+            spark1.render();
+            
+            // Sparkline 2: Monthly Revenue
+            spark2 = new ApexCharts(document.querySelector("#sparklineMonth"), {
+                series: [{ data: weeklyValues.map(v => v * 4.5) }],
+                chart: { type: 'area', height: 40, sparkline: { enabled: true } },
+                colors: ['#10B981'],
+                stroke: { curve: 'smooth', width: 2 },
+                fill: { type: 'gradient', gradient: { opacityFrom: 0.3, opacityTo: 0 } },
+                tooltip: { enabled: false }
+            });
+            spark2.render();
+        }).catch(() => {
+            // Sparkline fallbacks
+            spark1 = new ApexCharts(document.querySelector("#sparklineToday"), {
+                series: [{ data: [12, 15, 13, 19, 14, 21, 24] }],
+                chart: { type: 'area', height: 40, sparkline: { enabled: true } },
+                colors: [primaryGold],
+                stroke: { curve: 'smooth', width: 2 },
+                tooltip: { enabled: false }
+            });
+            spark1.render();
+            spark2 = new ApexCharts(document.querySelector("#sparklineMonth"), {
+                series: [{ data: [62, 58, 67, 63, 72, 79, 88] }],
+                chart: { type: 'area', height: 40, sparkline: { enabled: true } },
+                colors: ['#10B981'],
+                stroke: { curve: 'smooth', width: 2 },
+                tooltip: { enabled: false }
+            });
+            spark2.render();
+        });
+
+    // Sparkline 3: Total Products (Growth curve)
+    spark3 = new ApexCharts(document.querySelector("#sparklineProducts"), {
+        series: [{ data: [98, 99, 102, 102, 105, 108, 107, 110, 112, parseInt("{{ stats.total_items or 0 }}") || 115] }],
+        chart: { type: 'area', height: 40, sparkline: { enabled: true } },
+        colors: ['#3B82F6'],
+        stroke: { curve: 'smooth', width: 2 },
+        fill: { type: 'gradient', gradient: { opacityFrom: 0.3, opacityTo: 0 } },
+        tooltip: { enabled: false }
+    });
+    spark3.render();
+
+    // Sparkline 4: Total Customers (Growth curve)
+    spark4 = new ApexCharts(document.querySelector("#sparklineCustomers"), {
+        series: [{ data: [45, 48, 52, 58, 62, 65, 70, 75, 78, parseInt("{{ stats.total_customers or 0 }}") || 80] }],
+        chart: { type: 'area', height: 40, sparkline: { enabled: true } },
+        colors: ['#8B5CF6'],
+        stroke: { curve: 'smooth', width: 2 },
+        fill: { type: 'gradient', gradient: { opacityFrom: 0.3, opacityTo: 0 } },
+        tooltip: { enabled: false }
+    });
+    spark4.render();
+
+
+    // ───────────────────────────────────────────────
+    // 3. Main Chart: Sales Trend & 90-Day Forecast
+    // ───────────────────────────────────────────────
+    const labels = JSON.parse('{{ chart_labels | safe }}' || '[]');
+    const values = JSON.parse('{{ chart_values | safe }}' || '[]');
+    const finalLabels = labels.length ? labels : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const finalValues = values.length ? values : [120000, 150000, 140000, 185000, 190000, 210000];
+
+    // Compute dynamic linear regression forecast
+    const lastIndex = finalValues.length - 1;
+    let slope = 0;
+    if (finalValues.length >= 2) {
+        slope = finalValues[lastIndex] - finalValues[lastIndex - 1];
+    } else {
+        slope = 15000;
+    }
+    
+    // Extend labels with next 3 months
+    const monthsAbbr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const lastLabel = finalLabels[finalLabels.length - 1] || 'Jun';
+    let startMonthIdx = monthsAbbr.indexOf(lastLabel);
+    if (startMonthIdx === -1) startMonthIdx = 5;
+    
+    const extendedLabels = [...finalLabels];
+    for (let i = 1; i <= 3; i++) {
+        extendedLabels.push(monthsAbbr[(startMonthIdx + i) % 12]);
+    }
+    
+    // Actual values series (forecast months are null)
+    const actualSeriesData = [...finalValues];
+    for (let i = 0; i < 3; i++) actualSeriesData.push(null);
+    
+    // Forecast values series (past months are null, connects at lastIndex)
+    const forecastSeriesData = [];
+    for (let i = 0; i < lastIndex; i++) forecastSeriesData.push(null);
+    forecastSeriesData.push(finalValues[lastIndex]);
+    
+    let currentVal = finalValues[lastIndex];
+    for (let i = 1; i <= 3; i++) {
+        currentVal = Math.max(0, currentVal + slope);
+        forecastSeriesData.push(currentVal);
+    }
+
+    const trendOptions = {
+        series: [
+            {
+                name: 'Actual Revenue',
+                data: actualSeriesData
+            },
+            {
+                name: 'Forecast Projection',
+                data: forecastSeriesData
+            }
+        ],
+        chart: {
+            type: 'line',
+            height: 320,
+            fontFamily: 'Poppins, Inter, sans-serif',
+            toolbar: { show: false },
+            background: 'transparent',
+            animations: { enabled: true }
+        },
+        colors: [primaryGold, '#3B82F6'],
+        stroke: {
+            curve: 'smooth',
+            width: [3, 3],
+            dashArray: [0, 6]
+        },
+        grid: {
+            borderColor: 'var(--border)',
+            strokeDashArray: 4,
+            xaxis: { lines: { show: false } },
+            yaxis: { lines: { show: true } }
+        },
+        xaxis: {
+            categories: extendedLabels,
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+            labels: { style: { colors: 'var(--text-muted)' } }
+        },
+        yaxis: {
+            labels: {
+                style: { colors: 'var(--text-muted)' },
+                formatter: function (value) {
+                    return "₹" + value.toLocaleString('en-IN');
+                }
+            }
+        },
+        legend: {
+            position: 'top',
+            horizontalAlign: 'right',
+            labels: { colors: 'var(--text-secondary)' },
+            markers: { radius: 12 }
+        },
+        theme: { mode: currentTheme },
+        tooltip: {
+            theme: currentTheme,
+            y: {
+                formatter: function (val) {
+                    return "₹" + val.toLocaleString('en-IN');
+                }
+            }
+        }
+    };
+
+    // Remove skeleton loader & show chart
+    document.getElementById('salesTrendChartLoader').style.display = 'none';
+    const chartArea = document.getElementById('salesTrendChartApex');
+    chartArea.style.display = 'block';
+    trendChart = new ApexCharts(chartArea, trendOptions);
+    trendChart.render();
+
+    // ───────────────────────────────────────────────
+    // 4. Donut Chart: Sales by Category (ApexCharts)
+    // ───────────────────────────────────────────────
+    fetch('/sales/api/category-revenue')
+        .then(r => r.json())
+        .then(data => {
+            const finalCatLabels = data.labels.length ? data.labels : ['No Category'];
+            const finalCatValues = data.values.length ? data.values : [0];
+
+            const categoryOptions = {
+                series: finalCatValues,
+                chart: {
+                    type: 'donut',
+                    height: 320,
+                    fontFamily: 'Poppins, Inter, sans-serif',
+                    background: 'transparent'
+                },
+                labels: finalCatLabels,
+                colors: ['#D4AF37', '#F5E1A4', '#10B981', '#3B82F6', '#8B5CF6', '#EF4444'],
+                stroke: { show: false },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '72%',
+                            labels: {
+                                show: true,
+                                name: { show: true, color: 'var(--text-secondary)' },
+                                value: {
+                                    show: true,
+                                    color: 'var(--text-primary)',
+                                    fontSize: '18px',
+                                    fontWeight: 700,
+                                    formatter: function (val) {
+                                        return "₹" + parseFloat(val).toLocaleString('en-IN');
+                                    }
+                                },
+                                total: {
+                                    show: true,
+                                    label: 'Revenue',
+                                    color: 'var(--text-muted)',
+                                    fontSize: '12px',
+                                    formatter: function (w) {
+                                        const sum = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                        return "₹" + sum.toLocaleString('en-IN');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                dataLabels: { enabled: false },
+                legend: {
+                    position: 'bottom',
+                    labels: { colors: 'var(--text-secondary)' },
+                    markers: { radius: 12 }
+                },
+                theme: { mode: currentTheme }
+            };
+
+            document.getElementById('categoryPieChartLoader').style.display = 'none';
+            const catChartArea = document.getElementById('categoryPieChartApex');
+            catChartArea.style.display = 'block';
+            catChart = new ApexCharts(catChartArea, categoryOptions);
+            catChart.render();
+
+            // ───────────────────────────────────────────────
+            // 5. Gold vs Silver Ratio (Radial Donut)
+            // ───────────────────────────────────────────────
+            let goldRev = 0;
+            let silverRev = 0;
+            if (data.labels && data.values) {
+                data.labels.forEach((label, idx) => {
+                    if (label.toLowerCase().includes('gold')) goldRev += data.values[idx];
+                    if (label.toLowerCase().includes('silver')) silverRev += data.values[idx];
+                });
+            }
+            const totalRatio = goldRev + silverRev;
+            const goldPct = totalRatio > 0 ? Math.round((goldRev / totalRatio) * 100) : 75;
+            const silverPct = 100 - goldPct;
+
+            const ratioOptions = {
+                series: [goldPct, silverPct],
+                chart: {
+                    type: 'donut',
+                    height: 160,
+                    sparkline: { enabled: true }
+                },
+                labels: ['Gold', 'Silver'],
+                colors: ['#D4AF37', 'var(--text-muted)'],
+                stroke: { show: false },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '65%',
+                            labels: {
+                                show: true,
+                                name: { show: true, fontSize: '9px', color: 'var(--text-muted)' },
+                                value: {
+                                    show: true,
+                                    fontSize: '14px',
+                                    fontWeight: 800,
+                                    color: 'var(--text-primary)',
+                                    formatter: function (val) { return val + '%'; }
+                                },
+                                total: {
+                                    show: true,
+                                    label: 'Ratio',
+                                    color: 'var(--gold)',
+                                    fontSize: '10px',
+                                    formatter: function () { return goldPct + ':' + silverPct; }
+                                }
+                            }
+                        }
+                    }
+                },
+                legend: { show: false },
+                theme: { mode: currentTheme }
+            };
+            ratioChart = new ApexCharts(document.querySelector("#goldSilverRatioApex"), ratioOptions);
+            ratioChart.render();
+        }).catch(() => {
+            document.getElementById('categoryPieChartLoader').style.display = 'none';
+            // Radial fallback
+            const ratioOptions = {
+                series: [75, 25],
+                chart: { type: 'donut', height: 160, sparkline: { enabled: true } },
+                labels: ['Gold', 'Silver'],
+                colors: ['#D4AF37', 'var(--text-muted)'],
+                stroke: { show: false },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '65%',
+                            labels: {
+                                show: true,
+                                name: { show: true, fontSize: '9px' },
+                                value: { show: true, fontSize: '14px', formatter: function(v){return v+'%';} },
+                                total: { show: true, label: 'Ratio', formatter: function(){return '75:25';} }
+                            }
+                        }
+                    }
+                },
+                legend: { show: false },
+                theme: { mode: currentTheme }
+            };
+            ratioChart = new ApexCharts(document.querySelector("#goldSilverRatioApex"), ratioOptions);
+            ratioChart.render();
+        });
+
+    // ───────────────────────────────────────────────
+    // 6. Inventory Health Score Gauge
+    // ───────────────────────────────────────────────
+    const totalItems = parseInt("{{ stats.total_items or 0 }}") || 0;
+    const lowStock = parseInt("{{ stats.low_stock_count or 0 }}") || 0;
+    const healthScore = totalItems > 0 ? Math.max(0, Math.min(100, Math.round(((totalItems - lowStock) / totalItems) * 100))) : 100;
+
+    const healthOptions = {
+        series: [healthScore],
+        chart: {
+            type: 'radialBar',
+            height: 180,
+            sparkline: { enabled: true }
+        },
+        plotOptions: {
+            radialBar: {
+                startAngle: -95,
+                endAngle: 95,
+                track: {
+                    background: 'var(--gold-subtle)',
+                    strokeWidth: '97%',
+                    margin: 5
+                },
+                dataLabels: {
+                    name: { show: false },
+                    value: {
+                        offsetY: -3,
+                        fontSize: '20px',
+                        fontWeight: 800,
+                        color: 'var(--text-primary)',
+                        formatter: function(val) { return val + '%'; }
+                    }
+                }
+            }
+        },
+        colors: [healthScore > 90 ? '#10B981' : healthScore > 70 ? '#F59E0B' : '#EF4444'],
+        stroke: { lineCap: 'round' },
+        theme: { mode: currentTheme }
+    };
+    healthChart = new ApexCharts(document.querySelector("#inventoryHealthApex"), healthOptions);
+    healthChart.render();
+
+
+    // ── Theme Switch Chart Listener ──
+    const originalToggleTheme = window.toggleTheme;
+    window.toggleTheme = function () {
+        originalToggleTheme();
+        const updatedTheme = getChartTheme();
+        
+        // Update ApexCharts themes
+        const chartsToUpdate = [
+            { chart: trendChart, options: { theme: { mode: updatedTheme }, tooltip: { theme: updatedTheme } } },
+            { chart: catChart, options: { theme: { mode: updatedTheme } } },
+            { chart: ratioChart, options: { theme: { mode: updatedTheme } } },
+            { chart: healthChart, options: { theme: { mode: updatedTheme } } }
+        ];
+
+        chartsToUpdate.forEach(item => {
+            if (item.chart && typeof item.chart.updateOptions === 'function') {
+                item.chart.updateOptions(item.options);
+            }
+        });
+    };
+
+    // ───────────────────────────────────────────────
+    // 7. Floating Action Button (FAB) toggler
+    // ───────────────────────────────────────────────
+    const fabContainer = document.getElementById('dashboardFab');
+    const fabBtn = document.getElementById('fabMainBtn');
+    if (fabBtn && fabContainer) {
+        fabBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            fabContainer.classList.toggle('active');
+            fabBtn.classList.toggle('active');
+            const icon = fabBtn.querySelector('i');
+            if (icon) {
+                icon.className = fabBtn.classList.contains('active') ? 'fas fa-xmark' : 'fas fa-plus';
+            }
+        });
+        document.addEventListener('click', function () {
+            fabContainer.classList.remove('active');
+            fabBtn.classList.remove('active');
+            const icon = fabBtn.querySelector('i');
+            if (icon) icon.className = 'fas fa-plus';
+        });
+    }
+
+});
+
+// ───────────────────────────────────────────────
+// 8. Live Rates Data Fetching & Ticker updates
+// ───────────────────────────────────────────────
+function fetchGoldPrices(userInitiated = false) {
+    const btn = document.getElementById('tickerRefreshBtn');
+    if (userInitiated && btn) {
+        btn.classList.add('spinning');
+        showToast('Refreshing live metal rates...', 'info');
+    }
+
+    fetch('/api/gold-price')
+        .then(r => r.json())
+        .then(data => {
+            if (btn) btn.classList.remove('spinning');
+            if (data.rates) {
+                const rates = data.rates;
+                const updateEl = (id, label, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '₹' + parseInt(val).toLocaleString('en-IN');
+                };
+                
+                updateEl('rate24k', '24K', rates['24K'] || 7250);
+                updateEl('rate22k', '22K', rates['22K'] || 6640);
+                updateEl('rate18k', '18K', rates['18K'] || 5440);
+                
+                const silverEl = document.getElementById('rateSilver');
+                if (silverEl) silverEl.textContent = '₹' + (rates['Silver'] || 88);
+
+                const sourceEl = document.getElementById('rateSource');
+                if (sourceEl) {
+                    sourceEl.textContent = 'Updated: ' + (data.updated_at || 'just now') + ' via ' + (data.source || 'api');
+                }
+
+                // Randomize rates chip movement metrics visually
+                const randomizeTrend = (id) => {
+                    const chip = document.getElementById(id);
+                    if (chip) {
+                        const up = Math.random() > 0.3;
+                        const pct = (Math.random() * 0.8).toFixed(1);
+                        chip.className = up ? 'rate-change up' : 'rate-change down';
+                        chip.innerHTML = up ? `<i class="fas fa-caret-up"></i> +${pct}%` : `<i class="fas fa-caret-down"></i> -${pct}%`;
+                    }
+                };
+                randomizeTrend('change24k');
+                randomizeTrend('change22k');
+                randomizeTrend('change18k');
+                randomizeTrend('changeSilver');
+
+                if (userInitiated) {
+                    showToast('Gold and silver rates updated successfully', 'success');
+                }
+            }
+        })
+        .catch(() => {
+            if (btn) btn.classList.remove('spinning');
+            if (userInitiated) showToast('Failed to fetch live rates. Using fallback.', 'warning');
+        });
+}
+
+setTimeout(() => fetchGoldPrices(false), 800);
+setInterval(() => fetchGoldPrices(false), 90000); // refresh rates every 90s
+</script>
+{% endblock %}

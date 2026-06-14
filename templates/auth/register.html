@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Register Account{% endblock %}
+{% block page_title %}👤 Create System Account{% endblock %}
+
+{% block content %}
+<div class="p-4 animate-in">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-glass">
+        <div class="card-header text-gold d-flex align-items-center justify-content-between">
+          <span><i class="fas fa-user-plus me-2"></i>Create New Credentials</span>
+          <a href="{{ url_for('employee.list_employees') }}" class="btn btn-outline-gold btn-sm">← Back to Registry</a>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
+            <div class="row g-3">
+              <!-- Basic Info -->
+              <div class="col-md-6">
+                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control form-control-dark" placeholder="Enter full name" required autofocus/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Access Level / Role <span class="text-danger">*</span></label>
+                <select name="role" class="form-select form-select-dark" required>
+                  <option value="Staff" selected>Staff</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Cashier">Cashier</option>
+                  <option value="Salesperson">Salesperson</option>
+                </select>
+              </div>
+
+              <!-- Login Credentials -->
+              <div class="col-md-6">
+                <label class="form-label">Username / Login Email <span class="text-danger">*</span></label>
+                <input type="email" name="username" class="form-control form-control-dark" placeholder="e.g. admin@shop.com" required/>
+                <div class="form-text text-muted">This email serves as the user's login username.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Password <span class="text-danger">*</span></label>
+                <input type="password" name="password" class="form-control form-control-dark" placeholder="Minimum 8 characters" required minlength="8"/>
+              </div>
+
+              <!-- Extra Contact Cards -->
+              <div class="col-md-6">
+                <label class="form-label">Phone Number</label>
+                <input type="text" name="phone" class="form-control form-control-dark" placeholder="e.g. +91 90000 00000"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email Address (Alternative)</label>
+                <input type="email" name="email" class="form-control form-control-dark" placeholder="personal@email.com"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Monthly Salary (₹)</label>
+                <div class="input-group input-group-dark">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" name="salary" class="form-control" placeholder="30000" min="0" step="0.01"/>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Join Date</label>
+                <input type="date" name="join_date" class="form-control form-control-dark" value="{{ now().strftime('%Y-%m-%d') }}"/>
+              </div>
+            </div>
+            
+            <hr class="hr-gold mt-4"/>
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('employee.list_employees') }}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-gold"><i class="fas fa-check-circle me-2"></i>Create Account</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

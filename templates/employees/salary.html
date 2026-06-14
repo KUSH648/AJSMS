@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Payroll{% endblock %}
+{% block page_title %}Payroll & Salary Management{% endblock %}
+
+{% block content %}
+<div class="animate-in">
+    <div class="card card-glass mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('employee.salary') }}" class="row g-3 align-items-end justify-content-between">
+                <div class="col-auto">
+                    <div class="text-secondary mb-1">Select salary calculation period:</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-gold small">Month</label>
+                    <select name="month" class="form-select form-select-dark" onchange="this.form.submit()">
+                        {% for m in months %}
+                        <option value="{{ m }}" {% if month == m %}selected{% endif %}>
+                            {{ datetime(2020, m, 1).strftime('%B') }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-gold small">Year</label>
+                    <select name="year" class="form-select form-select-dark" onchange="this.form.submit()">
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex">
+                    <button type="submit" class="btn btn-gold w-100"><i class="fas fa-arrows-rotate me-2"></i>Recalculate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card card-glass mb-4">
+        <div class="card-header text-gold d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-money-bill-wave me-2"></i>Staff Payroll — {{ datetime(2020, month, 1).strftime('%B') }} {{ year }}</span>
+            <span class="badge bg-dark text-gold border border-secondary">Manager & Staff Only</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Employee</th>
+                            <th>Role</th>
+                            <th class="text-end">Base Salary</th>
+                            <th class="text-center">Att. Stats</th>
+                            <th class="text-end">Deductions</th>
+                            <th class="text-end">Bonus</th>
+                            <th class="text-end">Net Salary</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if salary_data %}
+                            {% set total_paid = namespace(val=0) %}
+                            {% for s in salary_data %}
+                            {% set total_paid.val = total_paid.val + s.net_salary %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <div class="text-light fw-medium">{{ s.name }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ s.role }}</span>
+                                </td>
+                                <td class="text-end">₹{{ "{:,.2f}".format(s.base_salary) }}</td>
+                                <td class="text-center small">
+                                    <span class="text-success">{{ s.present_days }}P</span> /
+                                    <span class="text-danger">{{ s.absent_days }}A</span> /
+                                    <span class="text-warning">{{ s.half_days }}H</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-danger">-₹{{ "{:,.2f}".format(s.deductions) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success">+₹{{ "{:,.2f}".format(s.bonus) }}</span>
+                                </td>
+                                <td class="text-end text-gold fw-bold">₹{{ "{:,.2f}".format(s.net_salary) }}</td>
+                                <td>
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <button class="btn btn-outline-warning btn-sm" onclick="editSalary({{ s.employee_id }}, '{{ s.name }}', {{ s.bonus }}, {{ s.deductions }}, {{ month }}, {{ year }})" title="Adjust Bonus/Deductions">
+                                            <i class="fas fa-sliders-h"></i>
+                                        </button>
+                                        <a href="{{ url_for('employee.payslip', emp_id=s.employee_id, month=month, year=year) }}" class="btn btn-outline-gold btn-sm" title="Download Payslip PDF">
+                                            <i class="fas fa-file-invoice"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-dark fw-bold border-top border-warning">
+                                <td colspan="7" class="text-end text-gold">Total Payroll Payout:</td>
+                                <td class="text-end text-gold fs-5">₹{{ "{:,.2f}".format(total_paid.val) }}</td>
+                                <td></td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-secondary py-5">No salary records generated. Ensure employees exist with attendance marked.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Salary Modal -->
+<div class="modal fade" id="editSalaryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark-card border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-gold"><i class="fas fa-sliders-h me-2"></i>Adjust Salary Components</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editSalaryForm">
+                <div class="modal-body">
+                    <p class="text-muted mb-3" id="salaryEmpName"></p>
+                    <div class="mb-3">
+                        <label class="form-label text-gold">Bonus (₹)</label>
+                        <input type="number" name="bonus" id="salaryBonus" class="form-control form-control-dark" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-danger">Deductions (₹)</label>
+                        <input type="number" name="deductions" id="salaryDeductions" class="form-control form-control-dark" step="0.01" min="0" value="0">
+                    </div>
+                    <input type="hidden" name="emp_id" id="salaryEmpId">
+                    <input type="hidden" name="month" id="salaryMonth">
+                    <input type="hidden" name="year" id="salaryYear">
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold"><i class="fas fa-save me-2"></i>Save Adjustments</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function editSalary(empId, name, bonus, deductions, month, year) {
+    document.getElementById('salaryEmpName').textContent = 'Adjusting: ' + name;
+    document.getElementById('salaryBonus').value = bonus;
+    document.getElementById('salaryDeductions').value = deductions;
+    document.getElementById('salaryEmpId').value = empId;
+    document.getElementById('salaryMonth').value = month;
+    document.getElementById('salaryYear').value = year;
+    document.getElementById('editSalaryForm').action = '/employees/salary/adjust';
+    new bootstrap.Modal(document.getElementById('editSalaryModal')).show();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.animate-in').forEach((el, i) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            el.style.transition = 'all 0.5s ease';
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, i * 100);
+    });
+});
+</script>
+{% endblock %}

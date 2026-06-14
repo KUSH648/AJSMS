@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Inventory{% endblock %}
+{% block page_title %}📦 Inventory Management{% endblock %}
+
+{% block content %}
+<div class="p-4">
+
+  <!-- Header actions -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h5 class="text-gold mb-1">Jewellery Items</h5>
+      <p class="text-muted small mb-0">{{ items|length }} items in inventory</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('inventory.export_inventory') }}" class="btn btn-outline-gold btn-sm">
+        <i class="fas fa-file-excel me-1"></i>Export
+      </a>
+      <button class="btn btn-outline-gold btn-sm" onclick="openBarcodeScanner()">
+        <i class="fas fa-barcode me-1"></i>Scan Barcode
+      </button>
+      <a href="{{ url_for('inventory.add_item') }}" class="btn btn-gold btn-sm">
+        <i class="fas fa-plus me-1"></i>Add Item
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card-dark mb-4">
+    <div class="card-dark-body">
+      <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Search</label>
+          <div class="input-group input-group-dark">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" name="q" class="form-control" placeholder="Name, barcode, supplier…" value="{{ search }}"/>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Category</label>
+          <select name="category" class="form-select form-select-dark">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Material</label>
+          <select name="material" class="form-select form-select-dark">
+            <option value="">All Materials</option>
+            {% for mat in materials %}
+            <option value="{{ mat }}" {% if material == mat %}selected{% endif %}>{{ mat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-gold w-100"><i class="fas fa-filter me-1"></i>Filter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Items table -->
+  <div class="card-dark">
+    <div class="card-dark-body p-0">
+      <div class="table-responsive">
+        <table id="inventoryTable" class="table table-dark-custom">
+          <thead>
+            <tr>
+              <th>#</th><th>Name</th><th>Category</th><th>Material</th>
+              <th>Weight</th><th>Price</th><th>Stock</th><th>Barcode</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr class="{{ 'table-warning-soft' if item.item_id in low_stock_ids else '' }}">
+              <td class="text-muted small">{{ item.item_id }}</td>
+              <td>
+                <div class="fw-500">{{ item.name }}</div>
+                {% if item.description %}<div class="text-muted small">{{ item.description[:50] }}…</div>{% endif %}
+              </td>
+              <td><span class="badge-category">{{ item.category }}</span></td>
+              <td>{{ item.material }}</td>
+              <td>{{ item.weight_gm }}g</td>
+              <td class="text-gold">₹{{ '{:,.0f}'.format(item.selling_price or 0) }}</td>
+              <td>
+                {% if item.item_id in low_stock_ids %}
+                  <span class="badge bg-danger">{{ item.stock_qty }} ⚠</span>
+                {% else %}
+                  <span class="badge bg-success">{{ item.stock_qty }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.barcode %}
+                  <a href="{{ url_for('inventory.get_barcode', item_id=item.item_id) }}" target="_blank" class="text-muted small" title="View barcode">
+                    <i class="fas fa-barcode me-1"></i>{{ item.barcode[:12] }}
+                  </a>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex gap-1">
+                  <a href="{{ url_for('inventory.view_item', item_id=item.item_id) }}" class="btn btn-icon" title="View"><i class="fas fa-eye"></i></a>
+                  <a href="{{ url_for('inventory.edit_item', item_id=item.item_id) }}" class="btn btn-icon" title="Edit"><i class="fas fa-edit"></i></a>
+                  <form method="POST" action="{{ url_for('inventory.delete_item', item_id=item.item_id) }}" class="d-inline" onsubmit="return confirmDelete('{{ item.name }}')">
+                    <button type="submit" class="btn btn-icon btn-icon-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-boxes-stacked fa-2x mb-2 d-block"></i>No items found</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Barcode scanner modal -->
+<div class="modal fade" id="barcodeModal">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-dark">
+      <div class="modal-header">
+        <h5 class="modal-title text-gold"><i class="fas fa-barcode me-2"></i>Barcode Scanner</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopCamera()"></button>
+      </div>
+      <div class="modal-body text-center">
+        <video id="camFeed" width="100%" height="240" autoplay muted style="border-radius:10px;border:1px solid rgba(212,175,55,.2)"></video>
+        <canvas id="camCanvas" style="display:none"></canvas>
+        <div id="scanResult" class="mt-3"></div>
+        <button class="btn btn-gold mt-3" onclick="captureFrame()"><i class="fas fa-camera me-2"></i>Scan Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function(){
+  $('#inventoryTable').DataTable({
+    pageLength:25, responsive:true,
+    language:{ search:'', searchPlaceholder:'Quick search…' },
+    columnDefs:[{ orderable:false, targets:-1 }]
+  });
+});
+
+function confirmDelete(name){ return confirm(`Delete "${name}" from inventory? This cannot be undone.`); }
+
+let stream;
+function openBarcodeScanner(){
+  const modal = new bootstrap.Modal(document.getElementById('barcodeModal'));
+  modal.show();
+  navigator.mediaDevices.getUserMedia({video:{ facingMode:'environment' }}).then(s=>{
+    stream = s;
+    document.getElementById('camFeed').srcObject = s;
+  }).catch(e=>{ document.getElementById('scanResult').innerHTML = '<p class="text-danger">Camera access denied.</p>'; });
+}
+function stopCamera(){ if(stream) stream.getTracks().forEach(t=>t.stop()); }
+
+function captureFrame(){
+  const video  = document.getElementById('camFeed');
+  const canvas = document.getElementById('camCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0);
+  const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
+  document.getElementById('scanResult').innerHTML = '<div class="spinner-border spinner-border-sm text-gold"></div>';
+  fetch('/inventory/api/scan-barcode',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({image: b64})
+  }).then(r=>r.json()).then(data=>{
+    if(data.item){
+      document.getElementById('scanResult').innerHTML =
+        `<div class="alert alert-success">✅ Found: <b>${data.item.name}</b> — Stock: ${data.item.stock_qty}<br>
+         <a href="/inventory/view/${data.item.item_id}" class="btn btn-gold btn-sm mt-2">View Item</a></div>`;
+    } else {
+      document.getElementById('scanResult').innerHTML = '<div class="alert alert-warning">No item found for this barcode.</div>';
+    }
+  }).catch(()=>{ document.getElementById('scanResult').innerHTML = '<div class="alert alert-danger">Scan failed.</div>'; });
+}
+</script>
+{% endblock %}

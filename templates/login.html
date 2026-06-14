@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Login — JewelHub</title>
+<link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}" type="image/png"/>
+<meta name="theme-color" content="#0A0A0A" id="themeColorMeta">
+
+<!-- Theme Detection Script -->
+<script>
+  (function() {
+    const saved = localStorage.getItem('theme');
+    const metaColor = document.querySelector('meta[name="theme-color"]');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-bs-theme', 'light');
+      if (metaColor) metaColor.content = '#F8F4EC';
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('light-mode');
+      });
+    } else {
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+      if (metaColor) metaColor.content = '#0A0A0A';
+    }
+  })();
+</script>
+
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<!-- Google Fonts: Playfair Display, Outfit, Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<!-- Main Theme CSS -->
+<link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet"/>
+
+<style>
+/* ── Luxury Silk Background Animations ── */
+@keyframes silkFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes softFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(1deg); }
+}
+@keyframes sparkleTwinkle {
+    0%, 100% { opacity: 0.1; transform: scale(0.8); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+@keyframes cardEntrance {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Login Page ── */
+body {
+    background: linear-gradient(-45deg, #0A0A0A, #111827, #0F172A, #0A0A0A);
+    background-size: 400% 400%;
+    animation: silkFlow 15s ease infinite;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+    overflow-x: hidden;
+    position: relative;
+}
+
+body.light-mode {
+    background: linear-gradient(-45deg, #F8F4EC, #FFFDF8, #E8DCC8, #F5EFEB);
+    background-size: 400% 400%;
+    animation: silkFlow 15s ease infinite;
+    color: var(--text-primary);
+}
+
+.gold-sparkle {
+    position: fixed;
+    color: var(--gold);
+    font-size: var(--size, 16px);
+    opacity: 0.3;
+    pointer-events: none;
+    animation: sparkleTwinkle var(--duration, 4s) ease-in-out infinite;
+    left: var(--x, 10%);
+    top: var(--y, 10%);
+    animation-delay: var(--delay, 0s);
+    z-index: 1;
+}
+
+.login-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: var(--shadow-lg);
+    animation: cardEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    position: relative;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+.login-card:hover {
+    border-color: rgba(212, 175, 55, 0.55);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(212, 175, 55, 0.08);
+    transition: all 0.4s ease;
+}
+
+.login-brand-wrapper {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.login-logo {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 10px rgba(255, 215, 0, 0.25));
+    animation: softFloat 6s ease-in-out infinite;
+    margin-bottom: 16px;
+}
+
+body.light-mode .login-logo {
+    filter: drop-shadow(0 4px 10px rgba(212, 175, 55, 0.25));
+}
+
+.login-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    color: var(--gold);
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+body.light-mode .login-title {
+    color: var(--text-primary);
+}
+
+.login-subtitle {
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+}
+
+.form-label {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-control {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border);
+    color: var(--text-primary) !important;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    background-color: var(--bg-input) !important;
+    border-color: var(--gold) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15) !important;
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.input-group-text {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--gold);
+    cursor: pointer;
+    border-radius: 12px 0 0 12px;
+    border-right: none;
+    transition: all 0.3s;
+}
+
+.input-group-text:hover {
+    color: var(--gold-light);
+}
+
+.input-group .form-control {
+    border-left: none;
+    border-radius: 0 12px 12px 0;
+}
+
+.btn-login {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: var(--btn-gold-text);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    width: 100%;
+    font-size: 0.95rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+    filter: brightness(1.1);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.form-check-input {
+    border-color: var(--border);
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    background-color: var(--gold);
+    border-color: var(--gold);
+}
+
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+    color: var(--text-muted);
+}
+
+.version-tag {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    margin-top: 28px;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.5px;
+}
+</style>
+</head>
+<body>
+
+<!-- Animated gold sparkles in background -->
+<div class="gold-sparkle" style="--x:12%;--y:18%;--duration:4.5s;--delay:0s;--size:18px;">✦</div>
+<div class="gold-sparkle" style="--x:85%;--y:22%;--duration:6s;--delay:1s;--size:22px;">✧</div>
+<div class="gold-sparkle" style="--x:18%;--y:78%;--duration:5s;--delay:2s;--size:14px;">✦</div>
+<div class="gold-sparkle" style="--x:78%;--y:80%;--duration:5.5s;--delay:0.5s;--size:20px;">✦</div>
+<div class="gold-sparkle" style="--x:50%;--y:8%;--duration:7s;--delay:1.5s;--size:16px;">✧</div>
+<div class="gold-sparkle" style="--x:30%;--y:45%;--duration:6.5s;--delay:3s;--size:15px;">✦</div>
+
+<div class="login-card">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible mb-4 fade show" role="alert" style="font-size:0.82rem; border-radius:10px;">
+          <i class="fas fa-exclamation-circle me-1"></i> {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="login-brand-wrapper">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="JewelHub Logo" class="login-logo"/>
+    <div class="login-title">JewelHub</div>
+    <div class="login-subtitle">Boutique Management</div>
+  </div>
+
+  <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm">
+    <div class="mb-3">
+      <label class="form-label"><i class="fas fa-user-circle me-1 text-gold"></i> Username</label>
+      <input type="text" name="username" class="form-control" placeholder="Enter your credentials" required autofocus autocomplete="username"/>
+    </div>
+    <div class="mb-4">
+      <label class="form-label"><i class="fas fa-key me-1 text-gold"></i> Password</label>
+      <div class="input-group">
+        <span class="input-group-text" onclick="togglePwd()"><i class="fas fa-eye" id="eyeIcon"></i></span>
+        <input type="password" name="password" class="form-control" id="pwdInput" placeholder="••••••••" required autocomplete="current-password"/>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="form-check d-flex align-items-center gap-1">
+        <input class="form-check-input" type="checkbox" name="remember" id="rememberMe"/>
+        <label class="form-check-label text-muted small" for="rememberMe">Remember me</label>
+      </div>
+      <a href="#" class="small fw-semibold" style="color:var(--gold); text-decoration: none; font-size: 0.8rem;" onclick="event.preventDefault();alert('Please contact your administrator to reset your password.');">Forgot password?</a>
+    </div>
+    <button type="submit" class="btn btn-login"><i class="fas fa-signature me-1"></i> Enter Showroom</button>
+  </form>
+  
+  <div class="version-tag">JEWELHUB PLATFORM · v2.0.0</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function togglePwd(){
+  const input = document.getElementById('pwdInput');
+  const icon  = document.getElementById('eyeIcon');
+  if(input.type === 'password'){
+    input.type = 'text';
+    icon.className = 'fas fa-eye-slash';
+  } else {
+    input.type = 'password';
+    icon.className = 'fas fa-eye';
+  }
+}
+document.querySelectorAll('.alert').forEach(a=>{
+  setTimeout(()=> {
+    const bs = bootstrap.Alert.getOrCreateInstance(a);
+    if(bs) bs.close();
+  }, 5000);
+});
+</script>
+</body>
+</html>

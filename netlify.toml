@@ -1,0 +1,11 @@
+[build]
+  command = "pip install -r requirements.txt"
+  functions = "api/"
+
+[build.environment]
+  PYTHON_VERSION = "3.10"
+
+[[redirects]]
+  from = "/*"
+  to = "/api/index"
+  status = 200

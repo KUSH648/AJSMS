@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{% block title %}JewelHub{% endblock %} — Jewellery Management System</title>
+<link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}" type="image/png"/>
+<meta name="theme-color" content="#121212">
+
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<!-- Google Fonts: Poppins, Outfit, Inter, Playfair Display -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<!-- DataTables -->
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
+<!-- Custom -->
+<link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet"/>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Sidebar overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+  <div class="sidebar-logo">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="JewelHub Logo"/>
+    <span>JewelHub</span>
+  </div>
+
+  {% set role = current_user.role.lower() if current_user.is_authenticated else '' %}
+  <nav class="sidebar-nav">
+    <div class="nav-section"><span class="nav-section-title">MAIN</span></div>
+    <a href="{{ url_for('dashboard.index') }}" class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+      <i class="fas fa-gem"></i><span>Dashboard</span>
+    </a>
+
+    {% if role in ('admin', 'manager', 'staff', 'cashier') %}
+    <div class="nav-section"><span class="nav-section-title">INVENTORY</span></div>
+    <a href="{{ url_for('inventory.list_items') }}" class="nav-item {% if 'inventory' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-boxes-stacked"></i><span>Inventory</span>
+    </a>
+    {% endif %}
+
+    {% if role in ('admin', 'manager', 'staff') %}
+    <div class="nav-section"><span class="nav-section-title">CUSTOMERS</span></div>
+    <a href="{{ url_for('customer.list_customers') }}" class="nav-item {% if 'customer' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-users"></i><span>Customers</span>
+    </a>
+    {% endif %}
+
+    {% if role in ('admin', 'manager', 'staff', 'cashier') %}
+    <div class="nav-section"><span class="nav-section-title">TRANSACTIONS</span></div>
+    <a href="{{ url_for('billing.new_bill') }}" class="nav-item {% if request.endpoint == 'billing.new_bill' %}active{% endif %}">
+      <i class="fas fa-plus-circle"></i><span>New Bill</span>
+    </a>
+    <a href="{{ url_for('billing.bill_history') }}" class="nav-item {% if request.endpoint == 'billing.bill_history' %}active{% endif %}">
+      <i class="fas fa-receipt"></i><span>Bills</span>
+    </a>
+    {% endif %}
+
+    {% if role in ('admin', 'manager') %}
+    <a href="{{ url_for('sales.daily_report') }}" class="nav-item {% if 'sales' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-chart-bar"></i><span>Sales Reports</span>
+    </a>
+    {% endif %}
+
+    {% if role == 'admin' %}
+    <div class="nav-section"><span class="nav-section-title">HR</span></div>
+    <a href="{{ url_for('employee.list_employees') }}" class="nav-item {% if 'employee' in request.endpoint and 'attendance' not in request.endpoint and 'salary' not in request.endpoint %}active{% endif %}">
+      <i class="fas fa-id-badge"></i><span>Employees</span>
+    </a>
+    <a href="{{ url_for('employee.attendance') }}" class="nav-item {% if 'attendance' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-calendar-check"></i><span>Attendance</span>
+    </a>
+    <a href="{{ url_for('employee.salary') }}" class="nav-item {% if 'salary' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-money-bill-wave"></i><span>Salary</span>
+    </a>
+    {% endif %}
+
+    {% if role in ('admin', 'manager') %}
+    <div class="nav-section"><span class="nav-section-title">AI FEATURES</span></div>
+    <a href="{{ url_for('ai.recommendations') }}" class="nav-item ai-link {% if 'recommendation' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-wand-magic-sparkles"></i><span>Recommendations</span>
+    </a>
+    <a href="{{ url_for('ai.image_recognition') }}" class="nav-item ai-link {% if 'image_recognition' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-camera"></i><span>Image AI</span>
+    </a>
+    <a href="{{ url_for('ai.sales_prediction') }}" class="nav-item ai-link {% if 'prediction' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-chart-line"></i><span>Sales Prediction</span>
+    </a>
+    <a href="{{ url_for('ai.chatbot') }}" class="nav-item ai-link {% if 'chatbot' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-robot"></i><span>Chatbot</span>
+    </a>
+    {% endif %}
+
+    {% if role == 'admin' %}
+    <div class="nav-section"><span class="nav-section-title">ADMIN</span></div>
+    <a href="{{ url_for('auth.register') }}" class="nav-item">
+      <i class="fas fa-user-plus"></i><span>Add User</span>
+    </a>
+    <a href="{{ url_for('settings.index') }}" class="nav-item {% if 'settings' in request.endpoint %}active{% endif %}">
+      <i class="fas fa-cog"></i><span>Settings</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <!-- Sidebar Profile Card at bottom -->
+  <a href="{{ url_for('auth.profile') }}" class="sidebar-profile-card">
+    <div class="spc-avatar">{{ current_user.name[0].upper() if current_user.is_authenticated else '?' }}</div>
+    <div class="spc-info">
+      <div class="spc-name">{{ current_user.name if current_user.is_authenticated else 'Guest' }}</div>
+      <div class="spc-role">{{ (current_user.role or 'staff')|upper if current_user.is_authenticated else '' }}</div>
+    </div>
+    <i class="fas fa-chevron-right spc-chevron"></i>
+  </a>
+
+  <div class="sidebar-footer">
+    <a href="{{ url_for('auth.logout') }}" class="text-danger-soft w-100 justify-content-center py-2" style="font-weight: 600; border-radius: 8px;">
+      <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+    </a>
+  </div>
+</div>
+
+<!-- Main content wrapper -->
+<div id="main-content" class="main-content">
+  <div class="topbar px-4 py-3">
+    <div class="topbar-left d-flex align-items-center gap-3">
+      <button id="sidebarToggle" class="btn-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="dash-breadcrumb d-none d-md-flex">
+        <span class="bc-home"><i class="fas fa-gem me-1 text-gold"></i> JewelHub</span>
+        <span class="bc-sep"><i class="fas fa-chevron-right" style="font-size: 0.7rem; opacity: 0.5;"></i></span>
+        <span class="bc-current">{% block page_title %}Dashboard{% endblock %}</span>
+      </div>
+    </div>
+    
+    <!-- Premium search bar in topbar -->
+    <div class="topbar-search d-none d-lg-flex position-relative align-items-center" style="width: 320px;">
+      <i class="fas fa-search position-absolute text-muted" style="left: 12px; font-size: 0.85rem;"></i>
+      <input type="text" class="form-control ps-5 py-2 w-100" placeholder="Search inventory, bills..." style="font-size: 0.8rem; border-radius: 10px;" onkeyup="if(event.key === 'Enter') window.location.href='/inventory?search=' + this.value;">
+    </div>
+
+    <div class="topbar-right d-flex align-items-center gap-2">
+      <!-- Quick Action Floating Button -->
+      <a href="{{ url_for('billing.new_bill') }}" class="btn btn-gold btn-sm d-none d-sm-inline-flex px-3 rounded-pill" style="font-size: 0.78rem;">
+        <i class="fas fa-plus-circle"></i> New Invoice
+      </a>
+      
+      <!-- Dropdown Notification Center -->
+      <div class="dropdown">
+        <button class="topbar-btn dropdown-toggle border-0" type="button" id="notifDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" onclick="loadDropdownNotifications()">
+          <i class="fas fa-bell"></i>
+          <span class="notif-badge" id="notifCount" style="display:none">0</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end p-0 mt-2" aria-labelledby="notifDropdownBtn" id="notifDropdownMenu" style="width: 320px; max-height: 400px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);">
+          <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between" style="border-color: var(--border) !important;">
+            <span class="fw-bold text-light" style="font-size: 0.82rem;">Notification Center</span>
+            <span class="badge bg-gold-gradient text-dark" id="notifMenuCount" style="font-size: 0.65rem; font-weight: 700; border-radius: 4px;">0 Alerts</span>
+          </div>
+          <div id="notifDropdownBody" class="py-1" style="max-height: 320px; overflow-y: auto;">
+            <div class="py-4 text-center text-muted" style="font-size: 0.78rem;">
+              <div class="spinner-border spinner-border-sm text-gold" role="status"></div>
+            </div>
+          </div>
+        </ul>
+      </div>
+      
+      <button class="topbar-btn" onclick="toggleTheme()" title="Toggle theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+      </button>
+      
+      <span class="topbar-clock d-none d-sm-inline-block" id="topClock"></span>
+      
+      <!-- Profile Dropdown -->
+      <div class="dropdown ms-1">
+        <button class="topbar-btn dropdown-toggle p-0 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius:50%; overflow:hidden;">
+          <div class="topbar-avatar" style="width:36px; height:36px; border-radius:50%; background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color:#0A0A1A; font-weight:800; display:flex; align-items:center; justify-content:center; font-size: 0.85rem;">
+            {{ current_user.name[0].upper() if current_user.is_authenticated else '?' }}
+          </div>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end profile-dropdown p-2 mt-2" style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px;">
+          <li class="profile-dropdown-header p-2 mb-2" style="border-bottom:1px solid var(--border);">
+            <div class="fw-bold text-light" style="font-size:0.85rem;">{{ current_user.name if current_user.is_authenticated else 'Guest' }}</div>
+            <small class="text-gold" style="font-size:0.7rem; text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">{{ current_user.role if current_user.is_authenticated else 'guest' }}</small>
+          </li>
+          <li><a class="dropdown-item rounded py-2" href="{{ url_for('auth.profile') }}" style="font-size:0.82rem; color:var(--text-secondary); transition: all 0.2s;"><i class="fas fa-user-circle me-2"></i>My Profile</a></li>
+          {% if current_user.role == 'admin' %}
+          <li><a class="dropdown-item rounded py-2" href="{{ url_for('settings.index') }}" style="font-size:0.82rem; color:var(--text-secondary); transition: all 0.2s;"><i class="fas fa-cog me-2"></i>Settings</a></li>
+          {% endif %}
+          <li><hr class="dropdown-divider" style="border-color:var(--border);"></li>
+          <li><a class="dropdown-item rounded py-2 text-danger" href="{{ url_for('auth.logout') }}" style="font-size:0.82rem; transition: all 0.2s;"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flash-area px-4 pt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category in ('danger','warning') else 'info-circle' }} me-2"></i>
+            {{ message | safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<!-- Notification Offcanvas replaced by Notification Center dropdown -->
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+<script>
+function toggleSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  if (window.innerWidth <= 768) {
+    sidebar.classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+  } else {
+    sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed');
+    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+  }
+}
+function closeSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+function updateClock(){
+  const d = new Date();
+  const el = document.getElementById('topClock');
+  if (el) el.textContent = d.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+function loadDropdownNotifications() {
+  fetch('/api/notifications').then(r=>r.json()).then(data=>{
+    const body = document.getElementById('notifDropdownBody');
+    const badge = document.getElementById('notifCount');
+    const menuCount = document.getElementById('notifMenuCount');
+    if (!body) return;
+    let html = '';
+    const count = data.notifications ? data.notifications.length : 0;
+    
+    if (count > 0) {
+      if (badge) {
+        badge.textContent = count;
+        badge.style.display = 'flex';
+      }
+      if (menuCount) menuCount.textContent = count + ' Alert' + (count > 1 ? 's' : '');
+      data.notifications.forEach(n => {
+        html += `
+          <div class="dropdown-item notif-item d-flex align-items-start gap-2 py-2 px-3 border-bottom rounded-0" style="border-color: rgba(255,255,255,0.03) !important; white-space: normal; background: transparent; cursor: default;">
+            <div class="notif-icon mt-1 text-gold" style="font-size: 0.8rem;"><i class="fas fa-${n.icon || 'info-circle'}"></i></div>
+            <div style="flex: 1;">
+              <div class="text-light" style="font-size: 0.78rem; line-height: 1.4;">${n.message}</div>
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      if (badge) badge.style.display = 'none';
+      if (menuCount) menuCount.textContent = '0 Alerts';
+      html = `
+        <div class="py-4 text-center text-muted" style="font-size: 0.78rem;">
+          <i class="fas fa-circle-check text-success mb-1" style="font-size: 1.1rem; display: block;"></i>
+          All clear — no alerts
+        </div>
+      `;
+    }
+    body.innerHTML = html;
+  }).catch(() => {
+    const body = document.getElementById('notifDropdownBody');
+    if (body) body.innerHTML = '<div class="py-3 text-center text-muted" style="font-size:0.75rem;">Could not load alerts.</div>';
+  });
+}
+
+function updateNotificationBadge() {
+  fetch('/api/notifications').then(r=>r.json()).then(data=>{
+    const badge = document.getElementById('notifCount');
+    const count = data.notifications ? data.notifications.length : 0;
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }).catch(()=>{});
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  updateNotificationBadge();
+  setInterval(updateNotificationBadge, 45000); // refresh count every 45s
+});
+
+document.querySelectorAll('.alert').forEach(a => {
+  setTimeout(() => {
+    const bs = bootstrap.Alert.getOrCreateInstance(a);
+    if (bs) bs.close();
+  }, 5000);
+});
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

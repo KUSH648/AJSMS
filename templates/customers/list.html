@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}👥 Customer Directory{% endblock %}
+
+{% block content %}
+<div class="animate-in">
+    <!-- Header Controls -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div class="text-secondary">Track, search, and manage loyalty rewards for shop customers.</div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('customer.export_customers') }}" class="btn btn-outline-gold">
+                <i class="fas fa-file-excel me-2"></i>Export Excel
+            </a>
+            <a href="{{ url_for('customer.add_customer') }}" class="btn btn-gold">
+                <i class="fas fa-plus me-2"></i>Add Customer
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card card-glass mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('customer.list_customers') }}" class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label text-secondary small">Search Customer</label>
+                    <input type="text" name="q" class="form-control form-control-dark" placeholder="Name, phone number, or email..." value="{{ search }}"/>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-secondary small">Sort By</label>
+                    <select name="sort" class="form-select form-select-dark">
+                        <option value="name" {% if sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                        <option value="points" {% if sort == 'points' %}selected{% endif %}>Loyalty Points (High-Low)</option>
+                        <option value="created_at" {% if sort == 'created_at' %}selected{% endif %}>Newest Members</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-gold w-100"><i class="fas fa-search me-2"></i>Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Customer DataTable Card -->
+    <div class="card card-glass">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-striped align-middle mb-0 data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Customer Name</th>
+                            <th>Phone Number</th>
+                            <th>Email Address</th>
+                            <th class="text-center">Loyalty Points</th>
+                            <th>Member Since</th>
+                            <th class="text-center" style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if customers %}
+                            {% for c in customers %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td class="text-light fw-medium">{{ c.name }}</td>
+                                <td>{{ c.phone }}</td>
+                                <td>{{ c.email or '-' }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-gold-gradient text-dark fw-bold px-3 py-2">
+                                        <i class="fas fa-coins me-1"></i>{{ c.loyalty_points }} pts
+                                    </span>
+                                </td>
+                                <td>{{ c.created_at[:10] }}</td>
+                                <td>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <!-- Profile / Purchases -->
+                                        <a href="{{ url_for('customer.customer_profile', customer_id=c.customer_id) }}" class="btn btn-outline-gold btn-sm" title="View Customer Profile">
+                                            <i class="fas fa-user-circle"></i>
+                                        </a>
+                                        <!-- Edit -->
+                                        <a href="{{ url_for('customer.edit_customer', customer_id=c.customer_id) }}" class="btn btn-outline-info btn-sm" title="Edit Customer details">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <!-- Delete (Admin check) -->
+                                        {% if current_user.role.lower() == 'admin' %}
+                                        <form method="POST" action="{{ url_for('customer.delete_customer', customer_id=c.customer_id) }}" onsubmit="return confirm('Are you sure you want to delete this customer? This will clear their loyalty points.');" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Customer">
+                                                <i class="fas fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else: %}
+                            <tr>
+                                <td colspan="7" class="text-center text-secondary py-5">
+                                    <i class="fas fa-users-slash fa-3x mb-3 text-secondary"></i>
+                                    <p>No customers found matching search.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

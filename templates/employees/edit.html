@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Edit Employee{% endblock %}
+{% block page_title %}✏️ Edit Employee Information{% endblock %}
+
+{% block content %}
+<div class="p-4 animate-in">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-glass">
+        <div class="card-header text-gold d-flex align-items-center justify-content-between">
+          <span><i class="fas fa-edit me-2"></i>Update Employee Profile</span>
+          <a href="{{ url_for('employee.list_employees') }}" class="btn btn-outline-gold btn-sm">← Back to Registry</a>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('employee.edit_employee', emp_id=emp.employee_id) }}" id="editEmployeeForm">
+            <div class="row g-3">
+              <!-- Basic Info -->
+              <div class="col-md-6">
+                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control form-control-dark" value="{{ emp.name }}" required autofocus/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Role <span class="text-danger">*</span></label>
+                <select name="role" class="form-select form-select-dark" required>
+                  {% for r in roles %}
+                  <option value="{{ r }}" {% if emp.role == r %}selected{% endif %}>{{ r }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Contact & Salary -->
+              <div class="col-md-6">
+                <label class="form-label">Phone Number</label>
+                <input type="text" name="phone" class="form-control form-control-dark" value="{{ emp.phone or '' }}" placeholder="e.g. +91 90000 00000"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email Address / Login Username</label>
+                <input type="email" name="email" class="form-control form-control-dark" value="{{ emp.email }}" required/>
+                <div class="form-text text-muted">Warning: Changing this email will change their login credential username.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Monthly Salary (₹)</label>
+                <div class="input-group input-group-dark">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" name="salary" class="form-control" value="{{ emp.salary or 0.0 }}" min="0" step="0.01"/>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Join Date</label>
+                <input type="text" class="form-control form-control-dark" value="{{ emp.join_date }}" disabled/>
+              </div>
+
+              <!-- Legal IDs -->
+              <div class="col-md-6">
+                <label class="form-label">Aadhar Card Number</label>
+                <input type="text" name="aadhar" class="form-control form-control-dark" value="{{ emp.aadhar or '' }}" placeholder="12-digit UIDAI number"/>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">PAN Card Number</label>
+                <input type="text" name="pan" class="form-control form-control-dark" value="{{ emp.pan or '' }}" placeholder="10-digit alphanumeric PAN"/>
+              </div>
+
+              <!-- Address -->
+              <div class="col-12">
+                <label class="form-label">Residential Address</label>
+                <textarea name="address" class="form-control form-control-dark" rows="2" placeholder="Full postal address...">{{ emp.address or '' }}</textarea>
+              </div>
+            </div>
+            
+            <hr class="hr-gold mt-4"/>
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('employee.list_employees') }}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-gold"><i class="fas fa-save me-2"></i>Save Updates</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
