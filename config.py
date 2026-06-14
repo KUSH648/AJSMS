@@ -14,7 +14,7 @@ class Config:
 
     # ── Database ──────────────────────────────────────────────────────
     # 1. Fetch the cloud database connection string from Vercel's environment variables
-    DATABASE_URL = os.environ.get('DATABASE_URL')
+    DATABASE_URL = os.environ.get('database_url')
 
     # 2. Vercel/Neon sometimes use 'postgres://', but SQLAlchemy requires 'postgresql://'
     if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
