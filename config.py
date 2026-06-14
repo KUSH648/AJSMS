@@ -13,7 +13,19 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'jewellery-shop-ai-secret-2024-!@#xyz')
 
     # ── Database ──────────────────────────────────────────────────────
+    # 1. Fetch the cloud database connection string from Vercel's environment variables
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+
+    # 2. Vercel/Neon sometimes use 'postgres://', but SQLAlchemy requires 'postgresql://'
+    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+    # 3. Keep your old file path as a backup for local development
     DATABASE_PATH = os.path.join(BASE_DIR, 'jewellery_shop.db')
+
+    # 4. Tell your app which database to use (Cloud if it exists, Local if it doesn't)
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL or f"sqlite:///{DATABASE_PATH}"
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # ── File uploads ─────────────────────────────────────────────────
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
